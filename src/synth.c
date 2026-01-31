@@ -172,15 +172,39 @@ void render_sound(sound_t *sound, short *buffer) {
 
 /**
  * Generate the sound of both oscillators of a 2 OSC synth
- * Into both sound frame buffers
+ * Into the mixed sound frame buffer
  */
-void render_synth(synth_2osc_t *synth, short *buffer_osc_a, short *buffer_osc_b, short *mix_buffer) {
-    render_sound(synth->osc_a, buffer_osc_a);
-    render_sound(synth->osc_b, buffer_osc_b);
+void render_synth2osc(synth_2osc_t synth, short *mix_buffer) {
+    short buffer_osc_a[FRAMES];
+    short buffer_osc_b[FRAMES];
+    render_sound(synth.osc_a, buffer_osc_a);
+    render_sound(synth.osc_b, buffer_osc_b);
 
     for (int i = 0; i < FRAMES; i++) {
         int mixed = buffer_osc_a[i] + buffer_osc_b[i];
         mixed /= 2;
+        if (mixed > 32767) mixed = 32767;
+        if (mixed < -32768) mixed = -32768;
+
+        mix_buffer[i] = (short)mixed;
+    }
+}
+
+/**
+ * Generate the sound of the three oscillators of a 3 OSC synth
+ * Into the mixed sound frame buffer
+ */
+void render_synth3osc(synth_3osc_t synth, short *mix_buffer) {
+    short buffer_osc_a[FRAMES];
+    short buffer_osc_b[FRAMES];
+    short buffer_osc_c[FRAMES];
+    render_sound(synth.osc_a, buffer_osc_a);
+    render_sound(synth.osc_b, buffer_osc_b);
+    render_sound(synth.osc_c, buffer_osc_c);
+
+    for (int i = 0; i < FRAMES; i++) {
+        int mixed = buffer_osc_a[i] + buffer_osc_b[i] + buffer_osc_c[i];
+        mixed /= 3;
         if (mixed > 32767) mixed = 32767;
         if (mixed < -32768) mixed = -32768;
 

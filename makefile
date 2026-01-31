@@ -43,4 +43,7 @@ clean:
 # Rebuild
 re: clean all
 
+run:
+	./$(BIN_DIR)/$(TARGET)
+
 .PHONY: all clean re

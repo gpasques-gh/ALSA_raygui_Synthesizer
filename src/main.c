@@ -16,6 +16,7 @@ int main(int argc, char **argv) {
     
     int osc_a_wave = 0;
     int osc_b_wave = 0;
+    int osc_c_wave = 0;
 
     double attack = 0.05;
     double decay = 0.2;
@@ -29,6 +30,7 @@ int main(int argc, char **argv) {
         release = atof(argv[4]);
         osc_a_wave = atol(argv[5]);
         osc_b_wave = atol(argv[6]);
+        osc_c_wave = atol(argv[7]);
     }
 
     adsr_t adsr = {
@@ -56,9 +58,24 @@ int main(int argc, char **argv) {
         .s_wave = osc_b_wave
     };
 
+    sound_t sound_c = {
+        .s_adsr = adsr,
+        .s_active = 0,
+        .s_phase = 0.0,
+        .s_frames_left = 0,
+        .s_frames_total = 0,
+        .s_wave = osc_c_wave
+    };
+
     synth_2osc_t synth_2osc = {
         .osc_a = &sound,
         .osc_b = &sound_b
+    };
+
+    synth_3osc_t synth_3osc =  {
+        .osc_a = &sound,
+        .osc_b = &sound_b,
+        .osc_c = &sound_c
     };
 
     snd_pcm_t *handle;
@@ -81,9 +98,6 @@ int main(int argc, char **argv) {
     snd_pcm_prepare(handle);
 
     short buffer[FRAMES];
-    short buffer_b[FRAMES];
-    short mix_buffer[FRAMES];
-
     for (int i = 0; i < 5; i++) {
         for (int j = 0; j < FRAMES; j++) {
             buffer[j] = 0;
@@ -108,9 +122,9 @@ int main(int argc, char **argv) {
             refresh();
         }
 
-        render_synth(&synth_2osc, buffer, buffer_b, mix_buffer);
+        render_synth3osc(synth_3osc, buffer);
         
-        int err = snd_pcm_writei(handle, mix_buffer, FRAMES);
+        int err = snd_pcm_writei(handle, buffer, FRAMES);
         if (err == -EPIPE) {
             snd_pcm_prepare(handle);
         } else if (err < 0) {
@@ -123,6 +137,7 @@ int main(int argc, char **argv) {
         if (note_changed) {
             note_to_sound(note, &sound);
             note_to_sound(note, &sound_b);
+            note_to_sound(note, &sound_c);
         }
     }
 
