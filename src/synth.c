@@ -171,6 +171,24 @@ void render_sound(sound_t *sound, short *buffer) {
 }
 
 /**
+ * Generate the sound of both oscillators of a 2 OSC synth
+ * Into both sound frame buffers
+ */
+void render_synth(synth_2osc_t *synth, short *buffer_osc_a, short *buffer_osc_b, short *mix_buffer) {
+    render_sound(synth->osc_a, buffer_osc_a);
+    render_sound(synth->osc_b, buffer_osc_b);
+
+    for (int i = 0; i < FRAMES; i++) {
+        int mixed = buffer_osc_a[i] + buffer_osc_b[i];
+        mixed /= 2;
+        if (mixed > 32767) mixed = 32767;
+        if (mixed < -32768) mixed = -32768;
+
+        mix_buffer[i] = (short)mixed;
+    }
+}
+
+/**
  * Converts a note structure to a sound structure
  * Generate the frequency of the given note (semitone + octave)
  * And set the sound frames to the default
