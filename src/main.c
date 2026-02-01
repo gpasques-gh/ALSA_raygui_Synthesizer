@@ -14,6 +14,9 @@ int main(int argc, char **argv) {
 
     int octave = DEFAULT_OCTAVE;
     note_t note = {.semitone = nC, .octave = octave, .duration = 5, .velocity = 0};
+
+    lp_filter_t filter;
+    lp_init(&filter, 500.0f);
     
     int osc_a_wave = 0;
     int osc_b_wave = 0;
@@ -66,7 +69,9 @@ int main(int argc, char **argv) {
         .osc_b = &osc_b,
         .osc_c = &osc_c,
         .adsr = &adsr,
+        .lp_filter = &filter,
         .active = 0,
+        .detune = 0.0,
         .frames_left = 0.0,
         .frames_total = 0.0,
         .velocity_amplitude = 0.0
@@ -82,7 +87,7 @@ int main(int argc, char **argv) {
     int params_err = snd_pcm_set_params(handle, 
         SND_PCM_FORMAT_S16_LE,
         SND_PCM_ACCESS_RW_INTERLEAVED,
-        1, RATE, 1, 50000);
+        1, RATE, 1, 40000);
 
     if (params_err < 0) {
         fprintf(stderr, "snd_pcm_set_params error: %s\n", snd_strerror(params_err));

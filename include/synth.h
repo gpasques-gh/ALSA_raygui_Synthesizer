@@ -25,13 +25,20 @@ typedef struct {
 } osc_t;
 
 typedef struct {
+    float alpha; 
+    float prev;
+} lp_filter_t;
+
+typedef struct {
     osc_t *osc_a;
     osc_t *osc_b;
     osc_t *osc_c;
     adsr_t *adsr;
+    lp_filter_t *lp_filter;
     int frames_left;
     int frames_total;
     int active;
+    double detune;
     double velocity_amplitude;
 } synth_3osc_t;
 
@@ -47,5 +54,9 @@ void render_square(osc_t *sound, short *buffer);
 void render_triangle(osc_t *sound, short *buffer);
 void render_sawtooth(osc_t *sound, short *buffer);
 void render_synth3osc(synth_3osc_t *synth, short *mix_buffer);
+
+// FILTER
+void lp_init(lp_filter_t *filter, float cutoff);
+short lp_process(lp_filter_t *filter, short input);
 
 #endif

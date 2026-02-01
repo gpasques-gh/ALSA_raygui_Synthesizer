@@ -27,32 +27,37 @@ int get_midi(snd_rawmidi_t *midi_in, note_t *note, synth_3osc_t *synth) {
             note->octave = (data1 / 12) - 1;
             note->velocity = data2;
             change_osc_freq(synth, *note);
-            synth->osc_b->freq += 1;
-            synth->osc_c->freq -= 1;
         }
 
         if ((status & PRESSED) == KNOB_TURNED) {
             switch(data1) {
                 case ARTURIA_ATT_KNOB:
-                    synth->adsr->att = (data2 / 127.0);
+                    synth->adsr->att = (data2 / MIDI_MAX_VALUE);
                     break;
                 case ARTURIA_DEC_KNOB:
-                    synth->adsr->dec = (data2 / 127.0);
+                    synth->adsr->dec = (data2 / MIDI_MAX_VALUE);
                     break;
                 case ARTURIA_SUS_KNOB:
-                    synth->adsr->sus = (data2 / 127.0);
+                    synth->adsr->sus = (data2 / MIDI_MAX_VALUE);
                     break;
                 case ARTURIA_REL_KNOB:
-                    synth->adsr->rel = (data2 / 127.0);
+                    synth->adsr->rel = (data2 / MIDI_MAX_VALUE);
                     break;
                 case ARTURIA_OSC_A_KNOB:
-                    synth->osc_a->wave = (int)((data2 * 4) / 128.0);
+                    synth->osc_a->wave = (int)((data2 * 4) / (MIDI_MAX_VALUE + 1));
                     break;
                 case ARTURIA_OSC_B_KNOB:
-                    synth->osc_b->wave = (int)((data2 * 4) / 128.0);
+                    synth->osc_b->wave = (int)((data2 * 4) / (MIDI_MAX_VALUE + 1));
                     break;
                 case ARTURIA_OSC_C_KNOB:
-                    synth->osc_c->wave = (int)((data2 * 4) / 128.0);
+                    synth->osc_c->wave = (int)((data2 * 4) / (MIDI_MAX_VALUE + 1));
+                    break;
+                case ARTURIA_CUTOFF_KNOB:
+                    double cutoff = (data2 / MIDI_MAX_VALUE) * (RATE / 2);
+                    lp_init(synth->lp_filter, cutoff);
+                    break;
+                case ARTURIA_DETUNE_KNOB:
+                    synth->detune = (data2 / MIDI_MAX_VALUE);
                     break;
                 default:
                     break;

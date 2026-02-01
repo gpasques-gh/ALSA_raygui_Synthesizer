@@ -168,7 +168,6 @@ void render_sound(osc_t *sound, short *buffer) {
     }
 }
 
-
 /**
  * Generate the sound of the three oscillators of a 3 OSC synth
  * Into the mixed sound frame buffer
@@ -181,13 +180,15 @@ void render_synth3osc(synth_3osc_t *synth, short *mix_buffer) {
     render_sound(synth->osc_b, buffer_osc_b);
     render_sound(synth->osc_c, buffer_osc_c);
 
+    double envelope = get_adsr_envelope(synth);
+
     for (int i = 0; i < FRAMES; i++) {
-        double envelope = get_adsr_envelope(synth);
         int mixed = buffer_osc_a[i] + buffer_osc_b[i] + buffer_osc_c[i];
         mixed /= 3;
         if (mixed > 32767) mixed = 32767;
         if (mixed < -32768) mixed = -32768;
-        mix_buffer[i] = (short)(mixed * envelope * synth->velocity_amplitude);
+        short out = (short)(mixed * envelope * synth->velocity_amplitude);
+        mix_buffer[i] = lp_process(synth->lp_filter, out);
         if (synth->frames_left > 0) synth->frames_left--;
         else synth->active = 0;
     }
@@ -213,13 +214,13 @@ void change_osc_freq(synth_3osc_t *synth, note_t note) {
     synth->osc_a->frames_left = synth->frames_left;
     synth->osc_a->frames_total = synth->frames_total;
     
-    synth->osc_b->freq= A_4 * pow(2, a4_diff / 12);
+    synth->osc_b->freq= A_4 * pow(2, a4_diff / 12) + (synth->detune * 5);
     synth->osc_b->phase = 0.0;
     synth->osc_b->active = 1;
     synth->osc_b->frames_left = synth->frames_left;
     synth->osc_b->frames_total = synth->frames_total;
 
-    synth->osc_c->freq= A_4 * pow(2, a4_diff / 12);
+    synth->osc_c->freq= A_4 * pow(2, a4_diff / 12) - (synth->detune * 5);
     synth->osc_c->phase = 0.0;
     synth->osc_c->active = 1;
     synth->osc_c->frames_left = synth->frames_left;
@@ -253,3 +254,23 @@ char *get_wave_name(int wave) {
             return "Unkown wave";
     }
 }
+
+/**
+ * Init function for a low-pass filter with the given cutoff
+ */
+void lp_init(lp_filter_t *filter, float cutoff) {
+    float rc = 1.0f / (2.0f * M_PI * cutoff);
+    float dt = 1.0f / RATE;
+    filter->alpha = dt / (rc + dt);
+    filter->prev = 0.0f;
+}
+
+/**
+ * Function that processes a sound frame with the given low-pass filter
+ */
+short lp_process(lp_filter_t *filter, short input) {
+    float x = (float)input;
+    filter->prev = filter->prev + filter->alpha * (x - filter->prev);
+    return (short)filter->prev;
+}
+
