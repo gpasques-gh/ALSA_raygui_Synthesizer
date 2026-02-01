@@ -9,8 +9,12 @@
 #include "synth.h"
 #include "input.h"
 #include "sdl_interface.h"
+#include "midi.h"
 
 int main(int argc, char **argv) {
+
+    
+    
 
     int octave = DEFAULT_OCTAVE;
     note_t note = {.n_semitone = nC, .n_octave = octave, .n_duration = 5};
@@ -24,7 +28,7 @@ int main(int argc, char **argv) {
     double sustain = 0.7;
     double release = 0.2;
 
-    if (argc >= 7) {
+    if (argc >= 8) {
         attack = atof(argv[1]);
         decay = atof(argv[2]);
         sustain = atof(argv[3]);
@@ -143,19 +147,23 @@ int main(int argc, char **argv) {
             }
         }
 
-        render_synth3osc(synth_3osc, buffer);
         
-        int err = snd_pcm_writei(handle, buffer, FRAMES);
-        if (err == -EPIPE) {
-            snd_pcm_prepare(handle);
-        } else if (err < 0) {
-            snd_pcm_prepare(handle);
-        }
+        
+        
         
         if (note_changed) {
             note_to_sound(note, &sound);
             note_to_sound(note, &sound_b);
             note_to_sound(note, &sound_c);
+        }
+
+        render_synth3osc(synth_3osc, buffer);
+
+        int err = snd_pcm_writei(handle, buffer, FRAMES);
+        if (err == -EPIPE) {
+            snd_pcm_prepare(handle);
+        } else if (err < 0) {
+            snd_pcm_prepare(handle);
         }
     
         
@@ -166,6 +174,8 @@ int main(int argc, char **argv) {
         
     }
 
+    TTF_CloseFont(sans);
+    TTF_Quit();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     renderer = NULL;
