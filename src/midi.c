@@ -4,9 +4,10 @@
 #include "defs.h"
 #include "midi.h"
 
+
 /**
- * Getting the midi input from the given RawMidi input
- * Change the given 3osc synth oscillators frequency
+ * Function that read midi input from the snd_rawmidi_t input
+ * Into a note_t struct that is then used to change the frequency of the synth_3osc_t oscillators
  */
 int get_midi(snd_rawmidi_t *midi_in, note_t *note, synth_3osc_t *synth) {
 

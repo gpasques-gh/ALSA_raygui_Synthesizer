@@ -1,6 +1,11 @@
 #ifndef SYNTH_H
 #define SYNTH_H
 
+#define SINE_WAVE 0
+#define SQUARE_WAVE 1
+#define TRIANGLE_WAVE 2
+#define SAWTOOTH_WAVE 3
+
 typedef struct {
     short semitone;
     short octave;
@@ -48,11 +53,11 @@ void change_osc_freq(synth_3osc_t *synth, note_t note);
 char *get_wave_name(int wave);
 
 // SOUND WAVES
-void render_sound(osc_t *sound,  short *buffer);
-void render_sine(osc_t *sound, short *buffer);
-void render_square(osc_t *sound, short *buffer);
-void render_triangle(osc_t *sound, short *buffer);
-void render_sawtooth(osc_t *sound, short *buffer);
+void render_osc(osc_t *osc,  short *buffer);
+void render_sine(osc_t *osc, short *buffer);
+void render_square(osc_t *osc, short *buffer);
+void render_triangle(osc_t *osc, short *buffer);
+void render_sawtooth(osc_t *osc, short *buffer);
 void render_synth3osc(synth_3osc_t *synth, short *mix_buffer);
 
 // FILTER

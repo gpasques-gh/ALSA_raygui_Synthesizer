@@ -40,6 +40,7 @@ double get_adsr_envelope(synth_3osc_t *synth) {
         double decay_progress = (double) decay_pos / decay_frames;
         amplitude = 1.0 - decay_progress * (1.0 - adsr->sus);
     }
+
     // Sustain
     else if (elapsed_frames < release_start) {
         amplitude = adsr->sus;
@@ -59,41 +60,42 @@ double get_adsr_envelope(synth_3osc_t *synth) {
  * Generate a sine wave with the given sound structure into the sound buffer
  * The buffer is then read into the snd_pcm 
  */
-void render_sine(osc_t *sound, short *buffer) {
+void render_sine(osc_t *osc, short *buffer) {
 
-    double phase_inc = 2.0 * M_PI * sound->freq / RATE;
+    double phase_inc = 2.0 * M_PI * osc->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
         
-        double sample = sin(sound->phase);
+        double sample = sin(osc->phase);
         buffer[i] = (short)(AMPLITUDE * sample);
         
-        sound->phase += phase_inc;
-        if (sound->phase >= 2 * M_PI) sound->phase -= 2 * M_PI;
-        if (sound->frames_left > 0) sound->frames_left--;
-        else sound->active = 0;
+        osc->phase += phase_inc;
+        if (osc->phase >= 2 * M_PI) osc->phase -= 2 * M_PI;
+        if (osc->frames_left > 0) osc->frames_left--;
+        else osc->active = 0;
     }
 }
+
 
 /**
  * Generate a square wave with the given sound structure into the sound buffer
  * The buffer is then read into the snd_pcm 
  */
-void render_square(osc_t *sound, short *buffer) {
+void render_square(osc_t *osc, short *buffer) {
 
-    double phase_inc = sound->freq / RATE;
+    double phase_inc = osc->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
 
-        double sample = (sound->phase < 0.5) ? 1.0 : -1.0;
+        double sample = (osc->phase < 0.5) ? 1.0 : -1.0;
 
         buffer[i] = (short)(AMPLITUDE * sample);
 
-        sound->phase += phase_inc;
+        osc->phase += phase_inc;
 
-        if (sound->phase >= 1.0) sound->phase -= 1.0;
-        if (sound->frames_left > 0) sound->frames_left--;
-        else sound->active = 0;
+        if (osc->phase >= 1.0) osc->phase -= 1.0;
+        if (osc->frames_left > 0) osc->frames_left--;
+        else osc->active = 0;
     }
 }
 
@@ -101,20 +103,20 @@ void render_square(osc_t *sound, short *buffer) {
  * Generate a triangle wave with the given sound structure into the sound buffer
  * The buffer is then read into the snd_pcm 
  */
-void render_triangle(osc_t *sound, short *buffer) {
+void render_triangle(osc_t *osc, short *buffer) {
 
-    double phase_inc = sound->freq / RATE;
+    double phase_inc = osc->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
 
     
-        double sample = 1.0 - 4.0 * fabs(sound->phase - 0.5);
+        double sample = 1.0 - 4.0 * fabs(osc->phase - 0.5);
         buffer[i] = (short)(AMPLITUDE * sample);
 
-        sound->phase += phase_inc;
-        if (sound->phase >= 1.0) sound->phase -= 1.0;
-        if (sound->frames_left > 0) sound->frames_left--;
-        else sound->active = 0;
+        osc->phase += phase_inc;
+        if (osc->phase >= 1.0) osc->phase -= 1.0;
+        if (osc->frames_left > 0) osc->frames_left--;
+        else osc->active = 0;
     }
 
 }
@@ -123,18 +125,18 @@ void render_triangle(osc_t *sound, short *buffer) {
  * Generate a sawtooth wave with the given sound structure into the sound buffer
  * The buffer is then read into the snd_pcm 
  */
-void render_sawtooth(osc_t *sound, short *buffer) {
+void render_sawtooth(osc_t *osc, short *buffer) {
 
-    double phase_inc = sound->freq / RATE;
+    double phase_inc = osc->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
-        double sample = 2.0 * sound->phase - 1.0;
+        double sample = 2.0 * osc->phase - 1.0;
         buffer[i] = (short)(AMPLITUDE * sample);
 
-        sound->phase += phase_inc;
-        if (sound->phase >= 1.0) sound->phase -= 1.0;
-        if (sound->frames_left > 0) sound->frames_left--;
-        else sound->active = 0;
+        osc->phase += phase_inc;
+        if (osc->phase >= 1.0) osc->phase -= 1.0;
+        if (osc->frames_left > 0) osc->frames_left--;
+        else osc->active = 0;
     }
 }
 
@@ -142,27 +144,27 @@ void render_sawtooth(osc_t *sound, short *buffer) {
  * Generates the sound frames into the frame buffer
  * The buffer is then read by the snd_pcm into the sound card
  */
-void render_sound(osc_t *sound, short *buffer) {
+void render_osc(osc_t *osc, short *buffer) {
 
-    if (!sound->active || sound->frames_left == 0) {
+    if (!osc->active || osc->frames_left == 0) {
         for (int i = 0; i < FRAMES; i++) {
             buffer[i] = 0;
         }
         return;
     }
 
-    switch(sound->wave) {
+    switch(osc->wave) {
         case SINE_WAVE:
-            render_sine(sound, buffer);
+            render_sine(osc, buffer);
             break;
         case SQUARE_WAVE:
-            render_square(sound, buffer);
+            render_square(osc, buffer);
             break;
         case TRIANGLE_WAVE:
-            render_triangle(sound, buffer);
+            render_triangle(osc, buffer);
             break;
         case SAWTOOTH_WAVE:
-            render_sawtooth(sound, buffer);
+            render_sawtooth(osc, buffer);
             break;
         default:
             break;
@@ -177,9 +179,9 @@ void render_synth3osc(synth_3osc_t *synth, short *mix_buffer) {
     short buffer_osc_a[FRAMES];
     short buffer_osc_b[FRAMES];
     short buffer_osc_c[FRAMES];
-    render_sound(synth->osc_a, buffer_osc_a);
-    render_sound(synth->osc_b, buffer_osc_b);
-    render_sound(synth->osc_c, buffer_osc_c);
+    render_osc(synth->osc_a, buffer_osc_a);
+    render_osc(synth->osc_b, buffer_osc_b);
+    render_osc(synth->osc_c, buffer_osc_c);
 
     double envelope = get_adsr_envelope(synth);
 
@@ -252,7 +254,7 @@ char *get_wave_name(int wave) {
         case SAWTOOTH_WAVE:
             return "Sawtooth wave";
         default:
-            return "Unkown wave";
+            return "Unknown wave";
     }
 }
 
