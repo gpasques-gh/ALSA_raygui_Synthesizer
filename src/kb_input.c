@@ -8,19 +8,51 @@
  * Function that read keyboard input from the SDL_Event sent by the user
  * Into a note_t struct that is then used to actualize the frequency of the synth_3osc_t oscillators
  */
-void handle_input(SDL_Event *event, note_t *note, synth_3osc_t *synth) {
+void handle_input(SDL_Event *event, note_t *note, synth_3osc_t *synth, int kb_layout) {
 
     SDL_Keycode key = event->key.keysym.sym;
 
+    // QWERTY and AZERTY specific inputs
+    if (kb_layout == QWERTY) {
+        switch (key) {
+            case kC_QWERTY:
+                fprintf(stderr, "test");
+                note->semitone = nC;
+                change_osc_freq(synth, *note);
+                break;
+            case kC_SHARP_QWERTY:
+                note->semitone = nC_SHARP;
+                change_osc_freq(synth, *note);
+                break;
+            case ATTACK_INCREMENT_QWERTY:
+                synth->adsr->att += 0.05;
+                if (synth->adsr->att > 1.05) synth->adsr->att = 0.0;
+                break;
+            default:
+                break;
+        }
+    } else if (kb_layout == AZERTY) {
+        fprintf(stderr, "test");
+        switch (key) {
+            case kC_AZERTY:
+                note->semitone = nC;
+                change_osc_freq(synth, *note);
+                break;
+            case kC_SHARP_AZERTY:
+                    note->semitone = nC_SHARP;
+                    change_osc_freq(synth, *note);
+                    break;
+            case ATTACK_INCREMENT_AZERTY:
+                synth->adsr->att += 0.05;
+                if (synth->adsr->att > 1.05) synth->adsr->att = 0.0;
+                break;
+            default:
+                break;
+        }
+    }
+
+    // Non specific inputs
     switch(key) {
-        case kC:
-            note->semitone = nC;
-            change_osc_freq(synth, *note);
-            break;
-        case kC_SHARP:
-            note->semitone = nC_SHARP;
-            change_osc_freq(synth, *note);
-            break;
         case kD:
             note->semitone = nD;
             change_osc_freq(synth, *note);
@@ -75,10 +107,6 @@ void handle_input(SDL_Event *event, note_t *note, synth_3osc_t *synth) {
             break;
         case OSC_C_WAVE_INCREMENT:
             synth->osc_c->wave = (synth->osc_c->wave + 1) % 4;
-            break;
-        case ATTACK_INCREMENT:
-            synth->adsr->att += 0.05;
-            if (synth->adsr->att > 1.05) synth->adsr->att = 0.0;
             break;
         case DECAY_INCREMENT:
             synth->adsr->dec += 0.05;

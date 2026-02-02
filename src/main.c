@@ -12,7 +12,8 @@
 #include "kb_input.h"
 
 void usage() {
-    fprintf(stderr, "synth -kb : keyboard input, very limited for now but will probably evolve\n");
+    fprintf(stderr, "synth -kb : keyboard input, defaults to QWERTY\n");
+    fprintf(stderr, "synth -kb <QWERTY/AZERTY>: keyboard input with the given keyboard layout\n");
     fprintf(stderr, "synth -midi <midi hardware id> : midi keyboard input, able to change parameters of the sounds (ADSR, cutoff, detune and oscillators waveforms)\n");
     fprintf(stderr, "use amidi -l to list your connected midi devices and find your midi device hardware id, often something like : hw:0,0,0 or hw:1,0,0\n");
     fprintf(stderr, "to see this helper again, use synth -h or synth -help\n");
@@ -29,14 +30,25 @@ int main(int argc, char **argv) {
     snd_rawmidi_t *midi_in;
 
     int kb_input = 0;
+    int kb_layout = QWERTY;
     int midi_input = 0;
 
     if (strcmp(argv[1], "-kb") == 0 && argc == 2) {
         kb_input = 1;
-    } else if (strcmp(argv[1], "-kb") == 0 && argc > 2) {
-        fprintf(stderr, "too much arguments.\n");
-        usage();
-        return 1;
+    } else if (strcmp(argv[1], "-kb") == 0 && argc == 3) {
+        if (strcmp(argv[2], "QWERTY") == 0) {
+            kb_input = 1;
+            kb_layout = QWERTY;
+        } else if (strcmp(argv[2], "AZERTY") == 0) {
+            kb_input = 1;
+            kb_layout = AZERTY;
+        } else {
+            usage();
+            return 1;
+        }
+    } else if (strcmp(argv[1], "-kb") == 0 && argc > 3) {
+            usage();
+            return 1;
     } else if (strcmp(argv[1], "-midi") == 0 && argc >= 3) {
         midi_input = 1;
         strcpy(midi_device, argv[2]);
@@ -161,7 +173,7 @@ int main(int argc, char **argv) {
                 running = 0;
             }
             if (kb_input && event.type == SDL_KEYDOWN) {
-                handle_input(&event, &note, &synth_3osc);
+                handle_input(&event, &note, &synth_3osc, kb_layout);
             }
         }
 

@@ -5,9 +5,14 @@
 #include "defs.h"
 #include "synth.h"
 
+#define QWERTY 0
+#define AZERTY 1
+
 // NOTE KEYS
-#define kC SDLK_q
-#define kC_SHARP SDLK_z
+#define kC_QWERTY SDLK_a
+#define kC_AZERTY SDLK_q
+#define kC_SHARP_QWERTY SDLK_w
+#define kC_SHARP_AZERTY SDLK_z
 #define kD SDLK_s
 #define kD_SHARP SDLK_e
 #define kE SDLK_d
@@ -26,12 +31,13 @@
 #define DETUNE_INCREMENT SDLK_4
 #define CUTOFF_INCREMENT SDLK_5
 
-#define ATTACK_INCREMENT SDLK_w
+#define ATTACK_INCREMENT_QWERTY SDLK_z
+#define ATTACK_INCREMENT_AZERTY SDLK_w
 #define DECAY_INCREMENT SDLK_x
 #define SUSTAIN_INCREMENT SDLK_c
 #define RELEASE_INCREMENT SDLK_v
 
-void handle_input(SDL_Event *event, note_t *note, synth_3osc_t *synth);
+void handle_input(SDL_Event *event, note_t *note, synth_3osc_t *synth, int kb_layout);
 
 
 #endif
