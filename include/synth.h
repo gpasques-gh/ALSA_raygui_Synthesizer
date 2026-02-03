@@ -67,6 +67,7 @@ void change_osc_freq(synth_3osc_t *synth, note_t note, double detune);
 char *get_wave_name(int wave);
 synth_3osc_t *get_unused_voice(poly_synth_t *synth);
 
+
 // SOUND WAVES
 void render_osc(osc_t *osc,  short *buffer, int amplitude);
 void render_sine(osc_t *osc, short *buffer, int amplitude);
@@ -79,5 +80,6 @@ void render_poly_synth(poly_synth_t *synth, short *poly_buffer, int n_voices);
 // FILTER
 void lp_init(lp_filter_t *filter, float cutoff);
 short lp_process(lp_filter_t *filter, short input);
+
 
 #endif

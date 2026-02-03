@@ -37,7 +37,8 @@
 #define SUSTAIN_INCREMENT SDLK_c
 #define RELEASE_INCREMENT SDLK_v
 
-void handle_input(SDL_Event *event, note_t *note, synth_3osc_t *synth, int kb_layout);
-
+void handle_input(SDL_Event *event, note_t *note, poly_synth_t *synth, int kb_layout, int *n_voices);
+void handle_release(SDL_Event *event, note_t *note, poly_synth_t *synth, int kb_layout, int *n_voices);
+int key_to_note(SDL_Keycode key, note_t *note, int kb_layout);
 
 #endif

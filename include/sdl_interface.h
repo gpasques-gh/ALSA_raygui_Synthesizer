@@ -10,7 +10,7 @@
 #define WIDTH 1200
 #define HEIGHT 600
 
-void render_interface(note_t note, synth_3osc_t synth, TTF_Font *font, SDL_Renderer *renderer);
+void render_interface(poly_synth_t synth, TTF_Font *font, SDL_Renderer *renderer);
 void render_waveform(SDL_Renderer *renderer, short *buffer);
 
 #endif 

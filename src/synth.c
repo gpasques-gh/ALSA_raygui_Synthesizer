@@ -10,7 +10,6 @@
  * based on the ADSR envelope of the given sound
  */
 double get_adsr_envelope(synth_3osc_t *synth) {
-    
     if (!synth->active) return 0.0;
     
     adsr_t *adsr = synth->adsr;
@@ -62,7 +61,6 @@ double get_adsr_envelope(synth_3osc_t *synth) {
  * The buffer is then read into the snd_pcm 
  */
 void render_sine(osc_t *osc, short *buffer, int amplitude) {
-
     double phase_inc = 2.0 * M_PI * osc->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
@@ -81,7 +79,6 @@ void render_sine(osc_t *osc, short *buffer, int amplitude) {
  * The buffer is then read into the snd_pcm 
  */
 void render_square(osc_t *osc, short *buffer, int amplitude) {
-
     double phase_inc = osc->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
@@ -101,7 +98,6 @@ void render_square(osc_t *osc, short *buffer, int amplitude) {
  * The buffer is then read into the snd_pcm 
  */
 void render_triangle(osc_t *osc, short *buffer, int amplitude) {
-
     double phase_inc = osc->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
@@ -121,7 +117,6 @@ void render_triangle(osc_t *osc, short *buffer, int amplitude) {
  * The buffer is then read into the snd_pcm 
  */
 void render_sawtooth(osc_t *osc, short *buffer, int amplitude) {
-
     double phase_inc = osc->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
@@ -173,6 +168,7 @@ void render_synth3osc(synth_3osc_t *synth, short *mix_buffer, int amplitude) {
     short buffer_osc_a[FRAMES];
     short buffer_osc_b[FRAMES];
     short buffer_osc_c[FRAMES];
+
     render_osc(synth->osc_a, buffer_osc_a, amplitude);
     render_osc(synth->osc_b, buffer_osc_b, amplitude);
     render_osc(synth->osc_c, buffer_osc_c, amplitude);
@@ -202,8 +198,6 @@ void render_poly_synth(poly_synth_t *synth, short *poly_buffer, int n_voices) {
     short buffer_voice_d[FRAMES];
     short buffer_voice_e[FRAMES];
     short buffer_voice_f[FRAMES];
-    
-    //fprintf(stderr, "voices render: %d", n_voices);
 
     if (n_voices == 0) {
         synth->voice_a->active = 0;
@@ -225,8 +219,6 @@ void render_poly_synth(poly_synth_t *synth, short *poly_buffer, int n_voices) {
     render_synth3osc(synth->voice_e, buffer_voice_e, synth->amplitude);
     render_synth3osc(synth->voice_f, buffer_voice_f, synth->amplitude);
    
-
-
     for (int i = 0; i < FRAMES; i++) {
         int poly_mix = buffer_voice_a[i] + buffer_voice_b[i] + buffer_voice_c[i] + buffer_voice_d[i] + buffer_voice_e[i] + buffer_voice_f[i];
         poly_mix /= 6;
@@ -236,8 +228,6 @@ void render_poly_synth(poly_synth_t *synth, short *poly_buffer, int n_voices) {
     } 
 }
 
-
-
 /**
  * Converts a note structure to a sound structure
  * Generate the frequency of the given note (semitone + octave)
@@ -245,8 +235,10 @@ void render_poly_synth(poly_synth_t *synth, short *poly_buffer, int n_voices) {
  */
 void change_osc_freq(synth_3osc_t *synth, note_t note, double detune) {
     // Getting the difference between the given note and A4
-    double a4_diff = ((note.octave * 12) + note.semitone) - A4_POSITION;
+    double midi_note = note.octave * 12 + note.semitone;
+    double a4_diff = midi_note - A4_POSITION;
 
+    synth->midi_note = midi_note;
     synth->frames_total = (note.duration * 1000) * RATE / 1000;
     synth->frames_left = synth->frames_total;
     synth->active = 1;
@@ -309,6 +301,10 @@ short lp_process(lp_filter_t *filter, short input) {
     return (short)filter->prev;
 }
 
+/**
+ * Function that returns an unused voice of a polyphonic synthesizer
+ * Use to handle polyphony
+ */
 synth_3osc_t *get_unused_voice(poly_synth_t *synth) {
     synth_3osc_t *voices[6] = {
         synth->voice_a,
@@ -327,4 +323,5 @@ synth_3osc_t *get_unused_voice(poly_synth_t *synth) {
 
     return NULL;
 }
+
 

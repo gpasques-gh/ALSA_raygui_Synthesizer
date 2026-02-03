@@ -240,17 +240,18 @@ int main(int argc, char **argv) {
         while(SDL_PollEvent(&event) != 0) {
             if(event.type == SDL_QUIT) {
                 running = 0;
+            } else if (kb_input && event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+                handle_input(&event, &note, &synth, kb_layout, &n_voices);
+            } else if (kb_input && event.type == SDL_KEYUP) {
+                handle_release(&event, &note, &synth, kb_layout, &n_voices);
             }
-            /*if (kb_input && event.type == SDL_KEYDOWN) {
-                handle_input(&event, &note, &synth_3osc, kb_layout);
-            }*/
         }
 
         if (midi_input)
             get_midi(midi_in, &note, &synth, &n_voices);
 
         render_poly_synth(&synth, buffer, n_voices);
-        //fprintf(stderr, "Voices : %d", n_voices);
+        
         int err = snd_pcm_writei(handle, buffer, FRAMES);
         if (err == -EPIPE) {
             snd_pcm_prepare(handle);
@@ -260,7 +261,7 @@ int main(int argc, char **argv) {
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
-        render_interface(note, voice_a, sans, renderer);
+        render_interface(synth, sans, renderer);
         render_waveform(renderer, buffer);
         SDL_RenderPresent(renderer);
     }
