@@ -185,31 +185,48 @@ int main(int argc, char **argv)
         goto cleanup_window;
     }
 
-    SDL_Texture *keyboard_texture = SDL_CreateTexture(renderer, 
+    SDL_Texture *white_keys_texture = SDL_CreateTexture(renderer, 
     SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 
     WIDTH, WHITE_KEYS_HEIGHT);
 
-    if (keyboard_texture == NULL)
+    if (white_keys_texture == NULL)
     {
         fprintf(stderr, "error while creating keyboard texture: %s\n", SDL_GetError());
         goto cleanup_renderer;
     }
-
-    SDL_SetRenderTarget(renderer, keyboard_texture);
+    SDL_SetTextureBlendMode(white_keys_texture, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderTarget(renderer, white_keys_texture);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);                       
     render_keyboard_base(renderer);
     SDL_SetRenderTarget(renderer, NULL);
 
-    SDL_Event event;
+    SDL_Texture *black_keys_texture = SDL_CreateTexture(renderer, 
+    SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 
+    WIDTH, WHITE_KEYS_HEIGHT);
+
+    if (black_keys_texture == NULL)
+    {
+        fprintf(stderr, "error while creating keyboard texture: %s\n", SDL_GetError());
+        goto cleanup_white_keys_texture;
+    }
+
+    SDL_SetTextureBlendMode(black_keys_texture, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderTarget(renderer, black_keys_texture);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderClear(renderer);                       
+    render_black_keys(renderer);
+    SDL_SetRenderTarget(renderer, NULL);
+
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_Event event;    
     
     TTF_Init();
     font = TTF_OpenFont("Regular.ttf", 24);
     if (font == NULL)
     {
         fprintf(stderr, "error while loading font: %s\n", TTF_GetError());
-        goto cleanup_texture;
+        goto cleanup_black_keys_texture;
     }
 
     if (midi_input)
@@ -260,10 +277,16 @@ int main(int argc, char **argv)
         render_waveform(renderer, buffer);
 
         SDL_Rect keyboard_dest = {0, HEIGHT - WHITE_KEYS_HEIGHT, WIDTH, WHITE_KEYS_HEIGHT};
-        SDL_RenderCopy(renderer, keyboard_texture, NULL, &keyboard_dest);
+        SDL_RenderCopy(renderer, white_keys_texture, NULL, &keyboard_dest);
+        
+        for (int v = 0; v < VOICES; v++)
+            if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && !is_black_key(synth.voices[v].note))
+                render_key(renderer, synth.voices[v].note);
+        
+        SDL_RenderCopy(renderer, black_keys_texture, NULL, &keyboard_dest);
 
         for (int v = 0; v < VOICES; v++)
-            if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE)
+            if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && is_black_key(synth.voices[v].note))
                 render_key(renderer, synth.voices[v].note);
         
         SDL_RenderPresent(renderer);
@@ -278,9 +301,12 @@ cleanup_font:
     if (font)
         TTF_CloseFont(font);
     TTF_Quit();
-cleanup_texture:
-    if (keyboard_texture)
-        SDL_DestroyTexture(keyboard_texture);
+cleanup_black_keys_texture:
+    if (black_keys_texture)
+        SDL_DestroyTexture(black_keys_texture);
+cleanup_white_keys_texture:
+    if (white_keys_texture)
+        SDL_DestroyTexture(white_keys_texture);
 cleanup_renderer:
     if (renderer)
         SDL_DestroyRenderer(renderer);
