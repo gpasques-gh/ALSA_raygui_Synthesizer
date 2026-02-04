@@ -21,7 +21,7 @@ void handle_release(SDL_Keycode key, synth_t *synth, int layout, int octave);
 
 /**
  * Converts a given key with its keyboard layout to a MIDI note
- * Returns -1 when the key is not assigned to a note, and the MIDI note otherwise 
+ * Returns -1 when the key is not assigned to a note, and the MIDI note otherwise
  */
 int key_to_note(SDL_Keycode key, int kb_layout, int octave);
 

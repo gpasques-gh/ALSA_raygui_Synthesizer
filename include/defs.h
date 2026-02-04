@@ -53,8 +53,9 @@
 /**
  * Synthesizer parameters control keys
  */
-#define DETUNE_INCREMENT SDLK_4
+#define AMPLITUDE_INCREMENT SDLK_4
 #define CUTOFF_INCREMENT SDLK_5
+#define DETUNE_INCREMENT SDLK_6
 
 /**
  * Keyboard ADSR envelope parameters control keys

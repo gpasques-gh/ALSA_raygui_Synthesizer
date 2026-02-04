@@ -21,7 +21,7 @@ typedef struct
 } text_cache_t;
 
 /**
- * Render the synth basic informations into the SDL renderer with the given font : 
+ * Render the synth basic informations into the SDL renderer with the given font :
  * - ADSR envelope parameters
  * - Voices oscillators waveforms
  * - Filter cutoff
@@ -52,13 +52,13 @@ void render_white_keys(SDL_Renderer *renderer);
 void render_black_keys(SDL_Renderer *renderer);
 
 /**
- * Renders given note into a pressed key in the MIDI piano visualizer 
+ * Renders given note into a pressed key in the MIDI piano visualizer
  */
 void render_key(SDL_Renderer *renderer, int midi_note);
 
 /**
  * Returns a given MIDI note rectangle parameters (x, y, width and height)
- * Used to draw the piano keys into the SDL renderer 
+ * Used to draw the piano keys into the SDL renderer
  */
 void get_key_position(int midi_note, int *x, int *y,
                       int *width, int *height, int *is_black);

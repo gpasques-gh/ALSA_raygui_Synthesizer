@@ -79,16 +79,21 @@ void handle_input(SDL_Keycode key, synth_t *synth, int layout, int *octave,
         for (int v = 0; v < VOICES; v++)
             synth->voices[v].oscillators[2].wave = (synth->voices[v].oscillators[2].wave + 1) % 4;
         break;
+    case AMPLITUDE_INCREMENT:
+        synth->amp += 0.05;
+        if (synth->amp > 1.05)
+            synth->amp = 0.0;
+        break;
+    case CUTOFF_INCREMENT:
+        synth->filter->cutoff += 250.0f;
+        if (synth->filter->cutoff > 10000.0f)
+            synth->filter->cutoff = 0.0f;
+        lp_init(synth->filter, synth->filter->cutoff);
+        break;
     case DETUNE_INCREMENT:
         synth->detune += 0.05;
         if (synth->detune > 1.05)
             synth->detune = 0.0;
-        break;
-    case CUTOFF_INCREMENT:
-        synth->filter->cutoff += 0.05;
-        if (synth->filter->cutoff > 1.05)
-            synth->filter->cutoff = 0.0;
-        lp_init(synth->filter, synth->filter->cutoff);
         break;
     case SDLK_UP:
         (*octave)++;
@@ -118,7 +123,7 @@ void handle_release(SDL_Keycode key, synth_t *synth, int layout, int octave)
 
 /**
  * Converts a given key with its keyboard layout to a MIDI note
- * Returns -1 when the key is not assigned to a note, and the MIDI note otherwise 
+ * Returns -1 when the key is not assigned to a note, and the MIDI note otherwise
  */
 int key_to_note(SDL_Keycode key, int kb_layout, int octave)
 {

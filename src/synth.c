@@ -5,7 +5,7 @@
 
 /**
  * Process a sample from the ADSR envelope
- * Returns the envelope amplification coeficient 
+ * Returns the envelope amplification coeficient
  */
 double adsr_process(adsr_t *adsr)
 {
@@ -159,7 +159,7 @@ void render_synth(synth_t *synth, short *buffer)
 }
 
 /**
- * Change the frequency of a voice_t oscillators with the given MIDI note and velocity 
+ * Change the frequency of a voice_t oscillators with the given MIDI note and velocity
  * Multiplied by the synth_t detune coefficient
  */
 void change_freq(voice_t *voice, int note, int velocity, double detune)
@@ -225,7 +225,7 @@ short lp_process(lp_filter_t *filter, short input)
 
 /**
  * Returns the first free voice from the synth_t
- * Used to assign a note send by MIDI or keyboard to the first free voice 
+ * Used to assign a note send by MIDI or keyboard to the first free voice
  */
 voice_t *get_free_voice(synth_t *synth)
 {

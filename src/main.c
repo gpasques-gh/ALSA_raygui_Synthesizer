@@ -194,8 +194,9 @@ int main(int argc, char **argv)
     if (white_keys_texture == NULL)
     {
         fprintf(stderr, "error while creating keyboard texture: %s\n", SDL_GetError());
-        goto cleanup_renderer; 
+        goto cleanup_renderer;
     }
+
     SDL_SetTextureBlendMode(white_keys_texture, SDL_BLENDMODE_BLEND);
     SDL_SetRenderTarget(renderer, white_keys_texture);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
