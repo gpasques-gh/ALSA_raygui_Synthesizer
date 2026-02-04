@@ -31,6 +31,7 @@ You can set the keyboard layout to be either QWERTY or  AZERTY.
 The keyboard simulates a "real" piano keyboard, starting from `a` (`q` in AZERTY) to `j`.  
 The up arrow key move the keys up an octave and the down arrow key move the keys down an octave.  
 The `1` key change the first oscillator waveform, the `2` key change the second oscillator waveform and the `3` key change the third oscillator waveform.  
+The `4` key increment the amplification coefficient by `0.05`, the `5` key increment the cutoff filter frequency by `250` and the `6`key increment the synthesizer detune coefficient by `0.05`.   
 The `z` (`w` in AZERTY) key increment the envelope attack by `0.05`, reseting to `0.0` when going past `1.0`.  
 The `x` key increment the envelope decay by `0.05`, reseting to `0.0` when going past `1.0`.  
 The `c` key increment the envelope sustain by `0.05`, reseting to `0.0` when going past `1.0`.  
