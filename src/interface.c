@@ -17,8 +17,7 @@ static text_cache_t text_cache = {NULL, NULL, NULL, NULL, "", "", "", ""};
  * - Detune coefficient
  * - Amplification coefficient
  */
-void render_infos(synth_t synth,
-                  TTF_Font *font, SDL_Renderer *renderer,
+void render_infos(synth_t synth, TTF_Font *font, SDL_Renderer *renderer,
                   double attack, double decay, double sustain, double release)
 {
     SDL_Color black = {0, 0, 0, 255};
