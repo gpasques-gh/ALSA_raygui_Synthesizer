@@ -82,8 +82,12 @@ int main(int argc, char **argv)
 
     int octave = DEFAULT_OCTAVE;
 
-    lp_filter_t filter;
-    lp_init(&filter, 8000.0f);
+    lp_filter_t filter =
+    {
+        .cutoff = 0.5,
+        .prev_input = 0.0,
+        .prev_output = 0.0
+    };
 
     double attack = 0.2;
     double decay = 0.3;

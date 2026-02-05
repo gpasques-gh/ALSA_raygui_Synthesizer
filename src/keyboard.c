@@ -85,10 +85,9 @@ void handle_input(SDL_Keycode key, synth_t *synth, int layout, int *octave,
             synth->amp = 0.0;
         break;
     case CUTOFF_INCREMENT:
-        synth->filter->cutoff += 250.0f;
-        if (synth->filter->cutoff > 10000.0f)
-            synth->filter->cutoff = 0.0f;
-        lp_init(synth->filter, synth->filter->cutoff);
+        synth->filter->cutoff += 0.05;
+        if (synth->filter->cutoff > 1.05)
+            synth->filter->cutoff = 0.0;
         break;
     case DETUNE_INCREMENT:
         synth->detune += 0.05;

@@ -43,7 +43,7 @@ typedef struct
  */
 typedef struct
 {
-    float alpha, prev, cutoff;
+    float prev_input, prev_output, cutoff;
 } lp_filter_t;
 
 /**
@@ -102,15 +102,10 @@ void apply_detune_change(synth_t *synth);
 const char *get_wave_name(int wave);
 
 /**
- * Initialize a low-pass filter with the given cutoff frequency
- */
-void lp_init(lp_filter_t *filter, float cutoff);
-
-/**
  * Process a sample with the low-pass filter
  * Returns the processed sample
  */
-short lp_process(lp_filter_t *filter, short input);
+double lp_process(lp_filter_t *filter, double input, float cutoff);
 
 /**
  * Returns the first free voice from the synth_t

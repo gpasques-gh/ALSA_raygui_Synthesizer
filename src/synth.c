@@ -154,9 +154,8 @@ void render_synth(synth_t *synth, short *buffer)
         if (sample < -1.0)
             sample = -1.0;
 
-        short sample_short = (short)(sample * 32767.0);
-        sample_short = lp_process(synth->filter, sample_short);
-        buffer[i] = sample_short;
+        sample = lp_process(synth->filter, sample, synth->filter->cutoff);
+        buffer[i] = (short)(sample * 32767.0);;
     }
 }
 
@@ -216,26 +215,25 @@ const char *get_wave_name(int wave)
 }
 
 /**
- * Initialize a low-pass filter with the given cutoff frequency
- */
-void lp_init(lp_filter_t *filter, float cutoff)
-{
-    float rc = 1.0f / (2.0f * M_PI * cutoff);
-    float dt = 1.0f / RATE;
-    filter->alpha = dt / (rc + dt);
-    filter->prev = 0.0f;
-    filter->cutoff = cutoff;
-}
-
-/**
  * Process a sample with the low-pass filter
  * Returns the processed sample
  */
-short lp_process(lp_filter_t *filter, short input)
+double lp_process(lp_filter_t *filter, double input, float cutoff)
 {
-    float x = (float)input;
-    filter->prev = filter->prev + filter->alpha * (x - filter->prev);
-    return (short)filter->prev;
+    if (cutoff > 1.0f) cutoff = 1.0f;
+    if (cutoff < 0.0f) cutoff = 0.0f;
+
+    float frequency = cutoff * (RATE / 2.0f);
+    float omega = 2.0f * M_PI * frequency / RATE;
+    float alpha = omega / (omega + 1.0f);
+    
+    float input_f = (float)input;
+    float output = alpha * input_f + (1.0f - alpha) * filter->prev_output;
+    
+    filter->prev_output = output;
+    filter->prev_input = input_f;
+    
+    return (double)output;
 }
 
 /**
