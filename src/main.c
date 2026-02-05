@@ -10,7 +10,7 @@
 #include "keyboard.h"
 #include "interface.h"
 
-/** Prints the usage of the CLI arguments into the error output */
+/* Prints the usage of the CLI arguments into the error output */
 void usage()
 {
     fprintf(stderr, "synth -kb : keyboard input, defaults to QWERTY\n");

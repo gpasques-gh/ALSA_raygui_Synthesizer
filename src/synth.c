@@ -230,7 +230,7 @@ double lp_process(lp_filter_t *filter, double input, float cutoff)
     return (double)output;
 }
 
-/**
+/*
  * Returns the first free voice from the synth_t
  * Used to assign a note send by MIDI or keyboard to the first free voice
  */

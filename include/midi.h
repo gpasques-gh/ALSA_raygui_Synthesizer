@@ -4,7 +4,7 @@
 #include <alsa/asoundlib.h>
 #include "synth.h"
 
-/**
+/*
  * Get the MIDI input from the ALSA RawMIDI input (snd_rawmidi_t)
  * Activate the synth voices and update their frequencies with the given note
  * Turn off the synth voices when their assigned note are being released

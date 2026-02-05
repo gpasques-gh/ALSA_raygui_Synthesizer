@@ -3,7 +3,7 @@
 
 #include <SDL2/SDL.h>
 
-/** Notes semitones used for keyboard input */
+/* Notes semitones used for keyboard input */
 #define nC 0
 #define nC_SHARP 1
 #define nD 2
@@ -17,11 +17,11 @@
 #define nA_SHARP 10
 #define nB 11
 
-/** Keyboard layouts */
+/* Keyboard layouts */
 #define QWERTY 0
 #define AZERTY 1
 
-/** Keyboard note keys */
+/* Keyboard note keys */
 #define kC_QWERTY SDLK_a
 #define kC_AZERTY SDLK_q
 #define kC_SHARP_QWERTY SDLK_w
@@ -37,48 +37,48 @@
 #define kA_SHARP SDLK_u
 #define kB SDLK_j
 
-/** Keyboard oscillators waveforms control keys */
+/* Keyboard oscillators waveforms control keys */
 #define OSC_A_WAVE_INCREMENT SDLK_1
 #define OSC_B_WAVE_INCREMENT SDLK_2
 #define OSC_C_WAVE_INCREMENT SDLK_3
 
-/** Keyboard synthesizer parameters control keys */
+/* Keyboard synthesizer parameters control keys */
 #define AMPLITUDE_INCREMENT SDLK_4
 #define CUTOFF_INCREMENT SDLK_5
 #define DETUNE_INCREMENT SDLK_6
 
-/** Keyboard ADSR envelope parameters control keys */
+/* Keyboard ADSR envelope parameters control keys */
 #define ATTACK_INCREMENT_QWERTY SDLK_z
 #define ATTACK_INCREMENT_AZERTY SDLK_w
 #define DECAY_INCREMENT SDLK_x
 #define SUSTAIN_INCREMENT SDLK_c
 #define RELEASE_INCREMENT SDLK_v
 
-/** MIDI packets informations */
+/* MIDI packets informations */
 #define MIDI_MAX_VALUE 127.0
 #define PRESSED 0xF0
 #define NOTE_ON 0x90
 #define NOTE_OFF 0x80
 #define KNOB_TURNED 0xB0
 
-/** CC Values for the Arturia Keylab Essential 61 knobs */
-/** ADSR parameters knobs */
+/* CC Values for the Arturia Keylab Essential 61 knobs */
+/* ADSR parameters knobs */
 #define ARTURIA_ATT_KNOB 73
 #define ARTURIA_DEC_KNOB 75
 #define ARTURIA_SUS_KNOB 79
 #define ARTURIA_REL_KNOB 72
 
-/** Oscillators waveforms knobs */
+/* Oscillators waveforms knobs */
 #define ARTURIA_OSC_A_KNOB 80
 #define ARTURIA_OSC_B_KNOB 81
 #define ARTURIA_OSC_C_KNOB 82
 
-/** Synthesizer parameters knobs */
+/* Synthesizer parameters knobs */
 #define ARTURIA_CUTOFF_KNOB 74
 #define ARTURIA_DETUNE_KNOB 71
 #define ARTURIA_AMPLITUDE_KNOB 85
 
-/** Note and synth related */
+/* Note and synth related */
 #define VOICES 6
 #define DEFAULT_OCTAVE 4
 #define A_4 440
@@ -86,22 +86,22 @@
 #define DEFAULT_AMPLITUDE 0.5
 #define A4_POSITION 58
 
-/** Oscillators waveforms */
+/* Oscillators waveforms */
 #define SINE_WAVE 0
 #define SQUARE_WAVE 1
 #define TRIANGLE_WAVE 2
 #define SAWTOOTH_WAVE 3
 
-/** ALSA buffering and latency */
+/* ALSA buffering and latency */
 #define FRAMES 512
 #define LATENCY 40000
 
-/** SDL interface */
+/* SDL interface */
 #define WIDTH 1200
 #define HEIGHT 800
 #define TITLE "ALSA & SDL Synthesizer"
 
-/** MIDI piano visualizer */
+/* MIDI piano visualizer */
 #define WHITE_KEYS 52
 #define BLACK_KEYS 36
 #define WHITE_KEYS_WIDTH WIDTH / WHITE_KEYS
