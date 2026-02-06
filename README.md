@@ -48,5 +48,5 @@ To run the synth with MIDI input : `./bin/synth -midi midi device hardware id>` 
 The MIDI input was only tested with an Arturia Keylab Essential 61, the keyboard itself should work, but knobs CC values may be off for your keyboard, you can change them in midi.h. 
   
 # Contribute & feedback
-Don't hesitate to give feedback and contribute to the project!
+Don't hesitate to give feedback and contribute to the project!  
 And if you encounter any bug (and you probably will), please report them to me if you have the time!
