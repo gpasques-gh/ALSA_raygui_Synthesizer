@@ -7,7 +7,8 @@
  * Process a sample from the ADSR envelope
  * Returns the envelope amplification coeficient
  */
-float adsr_process(adsr_t *adsr)
+float 
+adsr_process(adsr_t *adsr)
 {
     switch (adsr->state)
     {
@@ -105,7 +106,8 @@ float adsr_process(adsr_t *adsr)
 }
 
 /* Renders the synth_t voices into the temporary sound buffer */
-void render_synth(synth_t *synth, short *buffer)
+void 
+render_synth(synth_t *synth, short *buffer)
 {
     double temp_buffer[FRAMES];
     memset(temp_buffer, 0, FRAMES * sizeof(double));
@@ -183,7 +185,8 @@ void render_synth(synth_t *synth, short *buffer)
         double env_cutoff = synth->filter->cutoff;
         if (synth->filter->env)
         {
-            env_cutoff = synth->filter->cutoff + adsr_process(synth->filter->adsr) / 2;
+            env_cutoff = synth->filter->cutoff + 
+            adsr_process(synth->filter->adsr) / 2;
             if (env_cutoff > 1.0) env_cutoff = 1.0;
         }
         
@@ -203,7 +206,9 @@ void render_synth(synth_t *synth, short *buffer)
  * Change the frequency of a voice_t oscillators with the given MIDI note and velocity
  * Multiplied by the synth_t detune coefficient
  */
-void change_freq(voice_t *voice, int note, int velocity, double detune)
+void 
+change_freq(voice_t *voice, int note, 
+            int velocity, double detune)
 {
     int a4_diff = note - A4_POSITION;
 
@@ -224,7 +229,8 @@ void change_freq(voice_t *voice, int note, int velocity, double detune)
 }
 
 /* Apply the detune change to the voices oscillators */
-void apply_detune_change(synth_t *synth) 
+void 
+apply_detune_change(synth_t *synth) 
 {
     for (int v = 0; v < VOICES; v++)
     { /* Applying detune changes to each voice of the synthesizer */
@@ -235,7 +241,8 @@ void apply_detune_change(synth_t *synth)
 }
 
 /* Get the literal name of a given waveform */
-const char *get_wave_name(int wave)
+const char 
+*get_wave_name(int wave)
 {
     switch (wave)
     {
@@ -256,7 +263,9 @@ const char *get_wave_name(int wave)
  * Process a sample with the low-pass filter
  * Returns the processed sample
  */
-double lp_process(lp_filter_t *filter, double input, float cutoff)
+double 
+lp_process(lp_filter_t *filter, double input, 
+            float cutoff)
 {
     if (cutoff > 1.0f) cutoff = 1.0f;
     if (cutoff < 0.0f) cutoff = 0.0f;
@@ -278,7 +287,8 @@ double lp_process(lp_filter_t *filter, double input, float cutoff)
  * Returns the first free voice from the synth_t
  * Used to assign a note send by MIDI or keyboard to the first free voice
  */
-voice_t *get_free_voice(synth_t *synth)
+voice_t 
+*get_free_voice(synth_t *synth)
 {
     for (int i = 0; i < VOICES; i++)
         if (!synth->voices[i].active)

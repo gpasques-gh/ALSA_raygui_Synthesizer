@@ -157,8 +157,6 @@ int main(int argc, char **argv)
         }
     }
 
-    
-
     if (snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0)
     {
         fprintf(stderr, "error while opening sound card.\n");
@@ -216,13 +214,13 @@ int main(int argc, char **argv)
     };
     
     InitWindow(WIDTH, HEIGHT, "ALSA & raygui synthesizer");
-    int show_message_box = 0;
+    Font annotation = LoadFont("Regular.ttf");
+    GuiSetFont(annotation);
+    GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * 0.5); 
+    
 
     while (!WindowShouldClose())
     {
-        
-        
-
         if (keyboard_input)
         {
             handle_input(&synth, keyboard_layout, &octave);
@@ -251,10 +249,19 @@ int main(int argc, char **argv)
             ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
             render_waveform(buffer);
             render_informations(&params);
-        EndDrawing();
+            render_white_keys();
+            for (int v = 0; v < VOICES; v++)
+                if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && !is_black_key(synth.voices[v].note))
+                    render_key(synth.voices[v].note);
 
-       
+            render_black_keys();
+            for (int v = 0; v < VOICES; v++)
+                if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && is_black_key(synth.voices[v].note))
+                    render_key(synth.voices[v].note);
+        EndDrawing();
     }
+
+    CloseWindow();
 
     if (midi_in)
         snd_rawmidi_close(midi_in);
