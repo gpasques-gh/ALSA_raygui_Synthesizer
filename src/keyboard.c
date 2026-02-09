@@ -49,9 +49,21 @@ void handle_input(synth_t *synth, int layout, int *octave)
     if (IsKeyPressed(kB))
         assign_note(synth, octave_length + nB);
     if (IsKeyPressed(KEY_UP))
-        (*octave)++; /* Moving an octave up on the keyboard */
+    {
+        (*octave)++; /* Moving up an octave on the keyboard */
+        /* Releasing all of the voices so that some notes 
+        don't get stucked when sustain is not at 0.0 */
+        for (int v = 0; v < VOICES; v++)
+            synth->voices[v].adsr->state = ENV_RELEASE;
+    }
     else if (IsKeyPressed(KEY_DOWN))
-        (*octave)--; /* Moving an octave down on the keyboard */
+    {
+        (*octave)--; /* Moving down an octave on the keyboard */
+        /* Releasing all of the voices so that some notes 
+        don't get stucked when sustain is not at 0.0 */
+        for (int v = 0; v < VOICES; v++)
+            synth->voices[v].adsr->state = ENV_RELEASE;
+    }
 }
 
 /* Free the synth voices when their assigned note key are being released */
