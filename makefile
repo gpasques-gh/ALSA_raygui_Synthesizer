@@ -22,7 +22,7 @@ LDFLAGS = -lasound -lm -lraylib -lxml2 $(shell pkg-config --libs sdl2 SDL2_ttf)
 # Default
 all: $(BIN_DIR)/$(TARGET)
 
-# Link
+# Link 
 $(BIN_DIR)/$(TARGET): $(OBJS) | $(BIN_DIR)
 	$(CC) $(OBJS) -o $@ $(LDFLAGS)
 

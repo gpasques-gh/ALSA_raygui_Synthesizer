@@ -5,19 +5,19 @@
 
 typedef struct 
 {
-    unsigned char ChunkID[4];
-    unsigned int ChunkSize;
-    unsigned char Format[4];
-    unsigned char Subchunk1ID[4];
-    unsigned int Subchunk1Size;
-    unsigned short AudioFormat;
-    unsigned short NumChannels;
-    unsigned int SampleRate;
-    unsigned int ByteRate;
-    unsigned short BlockAlign;
-    unsigned short BitsPerSample;
-    unsigned char Subchunk2ID[4];
-    unsigned int Subchunk2Size;
+    unsigned char chunk_id[4];
+    unsigned int chunk_size;
+    unsigned char format[4];
+    unsigned char sub1_id[4];
+    unsigned int sub1_size;
+    unsigned short audio_format;
+    unsigned short num_channels;
+    unsigned int sample_rate;
+    unsigned int byte_rate;
+    unsigned short block_align;
+    unsigned short bits_per_sample;
+    unsigned char sub2_id[4];
+    unsigned int sub2_size;
 } wav_header_t;
 
 int init_wav_header(wav_header_t *header);

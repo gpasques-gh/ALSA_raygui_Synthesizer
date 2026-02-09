@@ -26,7 +26,8 @@ render_informations(
     float *sustain, float *release,
     int *wave_a, int *wave_b, int *wave_c,
     bool *ddm_a, bool *ddm_b, bool *ddm_c,
-    char *preset_filename, bool *saving_preset)
+    char *preset_filename, char *audio_filename, 
+    bool *saving_preset, bool *saving_audio_file,bool *recording)
 {
     GuiLabel((Rectangle){WIDTH / 2 - 115, 5, 230, 20}, "ALSA & raygui Synthesizer");
 
@@ -108,7 +109,7 @@ render_informations(
             &synth->filter->env);
 
     /* Saving preset */
-    if (GuiButton((Rectangle){ 1030, 260, 120, 40 }, "Save preset"))
+    if (GuiButton((Rectangle){ 1030, 240, 120, 40 }, "Save preset"))
         *saving_preset = true;
 
     if (*saving_preset)
@@ -119,11 +120,35 @@ render_informations(
             preset_filename, saving_preset);
             
     /* Loading preset */
-    if (GuiButton((Rectangle){ 1030, 330, 120, 40 }, "Load preset"))
+    if (GuiButton((Rectangle){ 1030, 290, 120, 40 }, "Load preset"))
         load_preset(
             synth, 
             attack, decay, sustain, release,
             wave_a, wave_b, wave_c);
+
+    /* Recording audio */
+    int record_button = GuiButton((Rectangle){ 1030, 340, 120, 40}, "Record"); 
+
+    if (record_button && !*recording)
+        *saving_audio_file = true;
+    else if (record_button && *recording)
+        *recording = false;
+
+    if (*saving_audio_file)
+    {
+        int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, 
+                "Audio file name :", "", "Start recording", audio_filename, 20, false);
+        if (res == 0)
+            *saving_audio_file = false;
+        else if (res == 1)
+        {
+            *recording = true;
+            *saving_audio_file = false;
+        }
+    }
+
+    if (*recording)
+        DrawRectangleRounded((Rectangle){ 1155, 340, 5, 40 }, 0.2, 10, RED);
 }
 
 

@@ -111,7 +111,6 @@ int save_preset(
         xmlSaveFormatFileEnc(filename, doc, "UTF-8", 1);
         xmlFreeDoc(doc);
         xmlCleanupParser();
-        xmlMemoryDump();
     }
 
     return 0;

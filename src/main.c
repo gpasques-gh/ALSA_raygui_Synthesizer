@@ -198,18 +198,11 @@ int main(int argc, char **argv)
         snd_pcm_writei(handle, buffer, FRAMES);
     }
 
-    char audio_filename[256] = "audio/audio.wav";
-    remove(audio_filename);
+    char audio_filename[1024] = "\0";
     FILE *fwav = NULL;
     wav_header_t header;
 
-    init_wav_header(&header);
-    init_wav_file(audio_filename, &fwav, &header);
-
-    if (fwav == NULL)
-        fprintf(stderr, "fwav is null\n");
-
-    bool ddm_a = false, ddm_b = false, ddm_c = false, saving_preset = false;
+    bool ddm_a = false, ddm_b = false, ddm_c = false, saving_preset = false, recording = false, saving_audio_file = false;
     char filename[1024] = "\0";
     unsigned int count = 0;
     
@@ -220,7 +213,7 @@ int main(int argc, char **argv)
 
     while (!WindowShouldClose())
     {
-        if (keyboard_input && !saving_preset)
+        if (keyboard_input && !saving_preset && !saving_audio_file)
         {
             handle_input(&synth, keyboard_layout, &octave);
             handle_release(&synth, keyboard_input, octave);
@@ -243,9 +236,30 @@ int main(int argc, char **argv)
             snd_pcm_prepare(handle);
         }
 
-        if (fwav != NULL)
+        if (fwav != NULL && recording == true)
+        {
             fwrite(buffer, 2, FRAMES, fwav);
-        
+            count++;
+        }
+        else if (fwav == NULL && recording == true)
+        {
+            char audio_full_filename[1024] = "audio/";
+            strcat(audio_full_filename, audio_filename);
+            strcat(audio_full_filename, ".wav");
+            init_wav_header(&header);
+            init_wav_file(audio_full_filename, &fwav, &header);
+            audio_filename[0] = '\0';
+        }
+        else if (fwav != NULL && recording == false)
+        {
+            header.sub2_size = FRAMES * count * (unsigned int) header.num_channels * (unsigned int) header.bits_per_sample / 8;
+            header.chunk_size = (unsigned int) header.sub2_size + 36;
+            fseek(fwav, 0, SEEK_SET);
+            fwrite(&header, 1, sizeof(header), fwav);
+            close_wav_file(fwav);
+            fwav = NULL;
+            count = 0;
+        }
 
         BeginDrawing();
             ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
@@ -255,7 +269,8 @@ int main(int argc, char **argv)
                 &attack, &decay, &sustain, &release,
                 &osc_a, &osc_b, &osc_c,
                 &ddm_a, &ddm_b, &ddm_c,
-                filename, &saving_preset);
+                filename, audio_filename,
+                &saving_preset, &saving_audio_file, &recording);
             render_white_keys();
             for (int v = 0; v < VOICES; v++)
                 if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && !is_black_key(synth.voices[v].note))
@@ -265,9 +280,7 @@ int main(int argc, char **argv)
             for (int v = 0; v < VOICES; v++)
                 if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && is_black_key(synth.voices[v].note))
                     render_key(synth.voices[v].note);
-        EndDrawing();
-
-        count++;
+        EndDrawing();        
     }
 
     CloseWindow();
@@ -277,13 +290,12 @@ int main(int argc, char **argv)
 
     if (fwav != NULL)
     {
-        header.Subchunk2Size = FRAMES * count * (unsigned int) header.NumChannels * (unsigned int) header.BitsPerSample / 8;
-        header.ChunkSize = (unsigned int) header.Subchunk2Size + 36;
+        header.sub2_size = FRAMES * count * (unsigned int) header.num_channels * (unsigned int) header.bits_per_sample / 8;
+        header.chunk_size = (unsigned int) header.sub2_size + 36;
         fseek(fwav, 0, SEEK_SET);
         fwrite(&header, 1, sizeof(header), fwav);
+        close_wav_file(fwav);
     }
-    
-    close_wav_file(fwav);
 
 cleanup_alsa:
     if (handle)

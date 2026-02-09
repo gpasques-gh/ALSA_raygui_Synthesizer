@@ -4,38 +4,38 @@
 
 int init_wav_header(wav_header_t *header)
 {
-    header->ChunkID[0] = 'R';
-    header->ChunkID[1] = 'I';
-    header->ChunkID[2] = 'F';
-    header->ChunkID[3] = 'F';
+    header->chunk_id[0] = 'R';
+    header->chunk_id[1] = 'I';
+    header->chunk_id[2] = 'F';
+    header->chunk_id[3] = 'F';
 
-    header->Format[0] = 'W';
-    header->Format[1] = 'A';
-    header->Format[2] = 'V';
-    header->Format[3] = 'E';
+    header->format[0] = 'W';
+    header->format[1] = 'A';
+    header->format[2] = 'V';
+    header->format[3] = 'E';
 
-    header->Subchunk1ID[0] = 'f';
-    header->Subchunk1ID[1] = 'm';
-    header->Subchunk1ID[2] = 't';
-    header->Subchunk1ID[3] = ' ';
+    header->sub1_id[0] = 'f';
+    header->sub1_id[1] = 'm';
+    header->sub1_id[2] = 't';
+    header->sub1_id[3] = ' ';
 
-    header->Subchunk2ID[0] = 'd';
-    header->Subchunk2ID[1] = 'a';
-    header->Subchunk2ID[2] = 't';
-    header->Subchunk2ID[3] = 'a';
+    header->sub2_id[0] = 'd';
+    header->sub2_id[1] = 'a';
+    header->sub2_id[2] = 't';
+    header->sub2_id[3] = 'a';
 
-    header->NumChannels = 1;
-    header->BitsPerSample = 16;
-    header->Subchunk2Size = 300 * MAX_SAMPLES * (unsigned int) header->NumChannels * (unsigned int) header->BitsPerSample / 8;
-    header->ChunkSize = (unsigned int) header->Subchunk2Size + 36;
-    header->Subchunk1Size = 16;
-    header->AudioFormat = 1;
-    header->SampleRate = RATE;
-    header->ByteRate = 
-        (unsigned int) header->SampleRate *
-        (unsigned int) header->NumChannels *
-        (unsigned int) header->BitsPerSample / 8;
-    header->BlockAlign = (unsigned int) header->NumChannels * (unsigned int) header->BitsPerSample / 8;
+    header->num_channels = 1;
+    header->bits_per_sample = 16;
+    header->sub2_size = 300 * MAX_SAMPLES * (unsigned int) header->num_channels * (unsigned int) header->bits_per_sample / 8;
+    header->chunk_size = (unsigned int) header->sub2_size + 36;
+    header->sub1_size = 16;
+    header->audio_format = 1;
+    header->sample_rate = RATE;
+    header->byte_rate = 
+        (unsigned int) header->sample_rate *
+        (unsigned int) header->num_channels *
+        (unsigned int) header->bits_per_sample / 8;
+    header->block_align = (unsigned int) header->num_channels * (unsigned int) header->bits_per_sample / 8;
         
     return 0;
 }
