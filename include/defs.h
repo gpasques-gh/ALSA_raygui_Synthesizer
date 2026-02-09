@@ -76,8 +76,9 @@
 #define SAWTOOTH_WAVE 3
 
 /* ALSA buffering and latency */
-#define FRAMES 512
+#define FRAMES 1024
 #define LATENCY 40000
+#define MAX_SAMPLES 512000
 
 /* SDL interface */
 #define WIDTH 1196

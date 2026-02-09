@@ -10,6 +10,7 @@
 #include "synth.h"
 #include "midi.h"
 #include "keyboard.h"
+#include "record.h"
 
 /* Prints the usage of the CLI arguments into the error output */
 void usage()
@@ -31,6 +32,7 @@ int main(int argc, char **argv)
 
     snd_pcm_t *handle = NULL;
     snd_rawmidi_t *midi_in = NULL;
+
 
     char midi_device[256];
     int midi_input = 0;
@@ -196,8 +198,20 @@ int main(int argc, char **argv)
         snd_pcm_writei(handle, buffer, FRAMES);
     }
 
+    char audio_filename[256] = "audio/audio.wav";
+    remove(audio_filename);
+    FILE *fwav = NULL;
+    wav_header_t header;
+
+    init_wav_header(&header);
+    init_wav_file(audio_filename, &fwav, &header);
+
+    if (fwav == NULL)
+        fprintf(stderr, "fwav is null\n");
+
     bool ddm_a = false, ddm_b = false, ddm_c = false, saving_preset = false;
     char filename[1024] = "\0";
+    unsigned int count = 0;
     
     InitWindow(WIDTH, HEIGHT, "ALSA & raygui synthesizer");
     Font annotation = LoadFont("Regular.ttf");
@@ -229,6 +243,10 @@ int main(int argc, char **argv)
             snd_pcm_prepare(handle);
         }
 
+        if (fwav != NULL)
+            fwrite(buffer, 2, FRAMES, fwav);
+        
+
         BeginDrawing();
             ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
             render_waveform(buffer);
@@ -248,12 +266,24 @@ int main(int argc, char **argv)
                 if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && is_black_key(synth.voices[v].note))
                     render_key(synth.voices[v].note);
         EndDrawing();
+
+        count++;
     }
 
     CloseWindow();
 
     if (midi_in)
         snd_rawmidi_close(midi_in);
+
+    if (fwav != NULL)
+    {
+        header.Subchunk2Size = FRAMES * count * (unsigned int) header.NumChannels * (unsigned int) header.BitsPerSample / 8;
+        header.ChunkSize = (unsigned int) header.Subchunk2Size + 36;
+        fseek(fwav, 0, SEEK_SET);
+        fwrite(&header, 1, sizeof(header), fwav);
+    }
+    
+    close_wav_file(fwav);
 
 cleanup_alsa:
     if (handle)
