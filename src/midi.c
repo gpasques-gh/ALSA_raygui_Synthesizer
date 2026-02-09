@@ -11,10 +11,9 @@
  * Change the ADSR parameters when the assigned knobs are being triggered
  * Change the cutoff, detune and amplification when the assigned knobs are being triggered
  */
-int 
-get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
-        float *attack, float *decay, float *sustain, float *release)
-{   /* Reading the MIDI stream */
+int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
+             float *attack, float *decay, float *sustain, float *release)
+{ /* Reading the MIDI stream */
     unsigned char midi_buffer[1024];
     ssize_t ret = snd_rawmidi_read(midi_in, midi_buffer, sizeof(midi_buffer));
 
@@ -22,7 +21,7 @@ get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
         return 1;
 
     for (int i = 0; i + 2 < ret; i += 3)
-    {   /* Getting the MIDI bytes informations */
+    { /* Getting the MIDI bytes informations */
         unsigned char status = midi_buffer[i];
         unsigned char data1 = midi_buffer[i + 1];
         unsigned char data2 = midi_buffer[i + 2];
@@ -32,10 +31,10 @@ get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
             int active_voices = 0;
 
             for (int v = 0; v < VOICES; v++)
-            {   /* Cutting released voices to avoid some voices getting blocked */
+            { /* Cutting released voices to avoid some voices getting blocked */
                 if (synth->voices[v].active && synth->voices[v].adsr->state != ENV_RELEASE)
                     active_voices++;
-                
+
                 if (synth->voices[v].adsr->state == ENV_RELEASE)
                 {
                     synth->voices[v].active = 0;
