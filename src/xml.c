@@ -408,8 +408,8 @@ int parse_adsr(
                 fprintf(stderr, "bad sustain value.\n");
                 return 1;
             }
-            if (sustain_float > 2.0)
-                sustain_float = 2.0;
+            if (sustain_float > 1.0)
+                sustain_float = 1.0;
             else if (sustain_float < 0.0)
                 sustain_float = 0.0;
             if (filter)
@@ -429,8 +429,8 @@ int parse_adsr(
                 fprintf(stderr, "bad release value.\n");
                 return 1;
             }
-            if (release_float > 2.0)
-                release_float = 2.0;
+            if (release_float > 1.0)
+                release_float = 1.0;
             else if (release_float < 0.0)
                 release_float = 0.0;
             if (filter)

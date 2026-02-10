@@ -240,7 +240,7 @@ void render_key(int midi_note)
 
         DrawLine(x + width, y + 1, x + width, y + height, (Color){151, 232, 255, 255});
         DrawLine(x, y + height, x + width, y + height, BLACK);
-    }       
+    }
 }
 
 /* Outputs a given MIDI note rectangle parameters (x, y, width and height) */
