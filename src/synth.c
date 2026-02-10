@@ -181,7 +181,11 @@ void render_synth(synth_t *synth, short *buffer)
     for (int i = 0; i < FRAMES; i++)
     { /* Low-pass filter and gain processing */
 
-        double env_cutoff = synth->filter->cutoff;
+        double phase_inc = synth->lfo->freq / RATE;
+        double automation = fabs(sin(2.0 * M_PI * synth->lfo->phase));
+
+        double env_cutoff = synth->filter->cutoff * automation;
+        if (env_cutoff <= 0.0) env_cutoff = 0.01;
         if (synth->filter->env)
         {
             env_cutoff = synth->filter->cutoff +
@@ -199,7 +203,11 @@ void render_synth(synth_t *synth, short *buffer)
         sample = lp_process(synth->filter, sample, env_cutoff);
         synth->filter->env_cutoff = env_cutoff;
         buffer[i] = (short)(sample * 32767.0);
-        ;
+
+        synth->lfo->phase += phase_inc;
+        if (synth->lfo->phase >= 1.0)
+            synth->lfo->phase -= 1.0;
+        
     }
 }
 

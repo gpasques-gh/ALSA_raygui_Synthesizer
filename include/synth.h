@@ -70,6 +70,7 @@ typedef struct
 {
     voice_t *voices;
     lp_filter_t *filter;
+    osc_t *lfo;
     float detune;
     float amp;
 } synth_t;

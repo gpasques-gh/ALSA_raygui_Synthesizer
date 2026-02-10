@@ -89,8 +89,15 @@ void render_informations(
     GuiGroupBox((Rectangle){625, 230, WIDTH / 2 - 50, 160}, "Synth parameters");
     /* Filter cutoff */
     GuiLabel((Rectangle){700, 240, 100, 20}, "Cutoff");
-    GuiSlider((Rectangle){645, 260, 170, 40}, NULL, NULL,
+    
+    /* Render the env cutoff if it's not equal to the filter cutoff */
+    if (synth->filter->env_cutoff == synth->filter->cutoff)
+        GuiSliderBar((Rectangle){645, 260, 170, 40}, NULL, NULL,
               &synth->filter->cutoff, 0.0f, 1.0f);
+    else
+        GuiSliderBar((Rectangle){645, 260, 170, 40}, NULL, NULL,
+            &synth->filter->env_cutoff, 0.0f, 1.0f);
+
     /* Synth detune effect */
     GuiLabel((Rectangle){700, 310, 100, 20}, "Detune");
     GuiSlider((Rectangle){645, 330, 170, 40}, NULL, NULL,

@@ -113,13 +113,20 @@ int main(int argc, char **argv)
             .adsr = &filter_adsr,
             .env = false};
 
+    osc_t lfo =
+        {
+            .freq = 0.5,
+            .phase = 0.0,
+            .wave = SINE_WAVE};
+
     /* Initialize the synthesizer */
     synth_t synth =
         {
             .voices = malloc(sizeof(voice_t) * VOICES),
             .amp = DEFAULT_AMPLITUDE,
             .detune = 0.0,
-            .filter = &filter};
+            .filter = &filter,
+            .lfo = &lfo};
 
     /* Error while allocating the synthesizer voices */
     if (synth.voices == NULL)
