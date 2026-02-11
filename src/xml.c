@@ -171,7 +171,12 @@ int load_preset(
     float *distortion_amount)
 {
     char filename[1024];
-    FILE *f = popen("zenity --file-selection --filename '/home/germain/C_Synthesizer/presets/' --file-filter '*.xml'", "r");
+    const char *home = getenv("HOME");
+    char zenity_command[1024] = "zenity --file-selection --filename '";
+    strcat(zenity_command, home);
+    strcat(zenity_command, "/C_Synthesizer/presets/' --file-filter '*.xml'");
+
+    FILE *f = popen(zenity_command, "r");
     fgets(filename, 1024, f);
     filename[strcspn(filename, "\n")] = '\0';
     pclose(f);
