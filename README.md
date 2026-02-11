@@ -9,6 +9,8 @@ Not tested, but MIDI can maybe work in a Linux VM using USB passthrough, althoug
 - ADSR envelope
 - Low pass filter with ADSR envelope
 - Detune
+- Distortion
+- LFO that can modulate either filter cutoff, amplification or detune
 - Keyboard input
 - MIDI input
 - Raygui graphical user interface
@@ -23,8 +25,11 @@ The GUI shows all of the informations about the synth and let the user configure
 - Filter cutoff level
 - Amplification level
 - Detune level
-- Oscillators selected waveforms
-- Buttons to load and save presets into the preset folder
+- Oscillators waveforms
+- LFO waveform, modulated parameter and frequency
+- Distortion level and overdrive
+- Buttons for loading and saving presets into the preset folder
+- Button for recording and stop recording into a WAV file
 - Piano keyboard showing which keys are being pressed
 
 # MIDI Input 🎹
@@ -46,7 +51,7 @@ libasound-dev
 raylib  
 raygui  
 zenity  
-libxml2
+libxml2  
 
 # Compilation 🛠️
 To compile the projet : `make`  
