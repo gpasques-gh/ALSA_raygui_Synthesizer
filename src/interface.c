@@ -274,20 +274,25 @@ void render_black_keys()
 }
 
 /* Renders given note into a pressed key in the MIDI piano visualizer */
-void render_key(int midi_note)
+void render_key(int midi_note, bool arp)
 {
     /* Getting the key position from the MIDI note */
     int width = 0, height = 0, x = 0, y = 0, is_black = 0;
     get_key_position(midi_note, &x, &y, &width, &height, &is_black);
     /* Draw the pressed key onto the keyboard */
-    DrawRectangle(x, y, width, height, (Color){151, 232, 255, 255});
+    if (arp)
+        DrawRectangle(x, y, width, height, SKYBLUE);
+    else
+        DrawRectangle(x, y, width, height, (Color){151, 232, 255, 255});
     /* Drawing black lines around it */
     DrawRectangleLines(x, y, width, height, BLACK);
     /* Avoid double thick line when pressing a white key */
     if (!is_black)
     {
-
-        DrawLine(x + width, y + 1, x + width, y + height, (Color){151, 232, 255, 255});
+        if (arp)
+            DrawLine(x + width, y + 1, x + width, y + height, SKYBLUE);
+        else 
+            DrawLine(x + width, y + 1, x + width, y + height, (Color){151, 232, 255, 255});
         DrawLine(x, y + height, x + width, y + height, BLACK);
     }
 }

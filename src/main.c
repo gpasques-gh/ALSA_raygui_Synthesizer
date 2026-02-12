@@ -133,7 +133,7 @@ int main(int argc, char **argv)
             .lfo = &lfo,
             .arp = true,
             .active_arp = 0,
-            .active_arp_float = 0.0,
+            .active_arp_float = 1.0,
             .bpm = 60.0};
 
     /* Error while allocating the synthesizer voices */
@@ -169,9 +169,10 @@ int main(int argc, char **argv)
         synth.voices[i].adsr->output = 0.0;
 
         /* Note and activation */
-        synth.voices[i].note = 0;
+        synth.voices[i].note = -1;
         synth.voices[i].velocity_amp = 0.0;
         synth.voices[i].active = 0;
+        synth.voices[i].pressed = 0;
 
         /* Allocate oscillators */
         synth.voices[i].oscillators = malloc(sizeof(osc_t) * 3);
@@ -382,17 +383,17 @@ int main(int argc, char **argv)
             so that the black keys correctly overlap with the white keys */
             render_white_keys();
             for (int v = 0; v < VOICES; v++)
-                if (synth.voices[v].active &&
-                    (synth.arp || (!synth.arp && synth.voices[v].adsr->state != ENV_RELEASE)) &&
-                    !is_black_key(synth.voices[v].note))
-                    render_key(synth.voices[v].note);
+                if (synth.voices[v].pressed && !is_black_key(synth.voices[v].note))
+                    render_key(synth.voices[v].note, false);
+            if (synth.arp && !is_black_key(synth.voices[synth.active_arp].note))
+                    render_key(synth.voices[synth.active_arp].note, true);
             /* Now we render the black keys */
             render_black_keys();
             for (int v = 0; v < VOICES; v++)
-                if (synth.voices[v].active &&
-                    (synth.arp || (!synth.arp && synth.voices[v].adsr->state != ENV_RELEASE)) &&
-                    is_black_key(synth.voices[v].note))
-                    render_key(synth.voices[v].note);
+                if (synth.voices[v].pressed && is_black_key(synth.voices[v].note))
+                    render_key(synth.voices[v].note, false);
+            if (synth.arp && is_black_key(synth.voices[synth.active_arp].note))
+                    render_key(synth.voices[synth.active_arp].note, true);
         EndDrawing();
     }
 

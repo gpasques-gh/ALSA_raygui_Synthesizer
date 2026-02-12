@@ -30,43 +30,76 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
         /* Note on is sent by the MIDI device */
         if ((status & PRESSED) == NOTE_ON && data2 > 0)
         {
-            int active_voices = 0;
+            int pressed_voices = 0;
 
             for (int v = 0; v < VOICES; v++)
             {   
-                if (synth->voices[v].active && synth->voices[v].adsr->state != ENV_RELEASE)
-                    active_voices++;
+                if (synth->voices[v].pressed)
+                    pressed_voices++;
 
                 /* Cutting released voices to avoid some voices getting blocked */
-                if (synth->voices[v].adsr->state == ENV_RELEASE)
-                {
-                    synth->voices[v].active = 0;
+                if (synth->voices[v].adsr->state == ENV_RELEASE && !synth->arp)
                     synth->voices[v].adsr->state = ENV_IDLE;
-                    synth->voices[v].adsr->output = 0.0;
-                }
+            
             }
 
             /* Getting the first free voice from the synth */
             voice_t *free_voice = get_free_voice(synth);
             if (free_voice == NULL)
                 continue;
+            free_voice->pressed = 1;
             /* Changing the frequency of the voice oscillators */
             change_freq(free_voice, data1, data2, synth->detune);
-            if (active_voices == 0)
-                /* If no voices are active or in release state, start the filter envelope */
+            /* If no voices are active or in release state, start the filter envelope */
+            if (pressed_voices == 0 && synth->filter->env)
                 synth->filter->adsr->state = ENV_ATTACK;
+
+            /* Sort the synth voices */
+            if (synth->arp)
+            {
+                sort_synth_voices(synth);
+                if (pressed_voices == 0)
+                    synth->active_arp_float = 1.0;
+            }
         }
         /* Note off is sent by the MIDI device */
         else if ((status & PRESSED) == NOTE_OFF ||
                  ((status & PRESSED) == NOTE_ON && data2 == 0))
+        {
+            int pressed_voices = 0;
+            for (int v = 0; v < VOICES; v++)
+                if (synth->voices[v].pressed)
+                    pressed_voices++;
+            
             for (int v = 0; v < VOICES; v++)
             {   /* We cut the voice that has the sent MIDI note assigned */
-                if (synth->voices[v].note == data1 && synth->voices[v].active)
+                if (synth->voices[v].note == data1 && 
+                    synth->voices[v].pressed)
                 {
-                    synth->voices[v].adsr->state = ENV_RELEASE;
+
+                    if (synth->arp && synth->voices[v].adsr->state != ENV_IDLE)
+                        synth->voices[v].adsr->state = ENV_IDLE;
+                    else if (!synth->arp &&
+                            synth->voices[v].adsr->state != ENV_RELEASE &&
+                            synth->voices[v].adsr->state != ENV_IDLE)
+                        synth->voices[v].adsr->state = ENV_RELEASE;
+
+                    synth->voices[v].note = -1;
+                    synth->voices[v].pressed = 0;
+
                     break; /* Multiple voices can't share the same note, so we break */
                 }
             }
+
+            if (synth->arp)
+            {
+                sort_synth_voices(synth);
+                if (pressed_voices == 2)
+                    synth->active_arp_float = 1.0;
+            }
+        }
+
+            
         /* If a knob is turned on the MIDI device */
         else if ((status & PRESSED) == KNOB_TURNED)
         {

@@ -60,6 +60,7 @@ typedef struct
     osc_t *oscillators;
     adsr_t *adsr;
     int active;
+    int pressed;
     int note;
     double velocity_amp;
 } voice_t;
