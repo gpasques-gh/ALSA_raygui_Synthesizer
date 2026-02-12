@@ -382,12 +382,16 @@ int main(int argc, char **argv)
             so that the black keys correctly overlap with the white keys */
             render_white_keys();
             for (int v = 0; v < VOICES; v++)
-                if (synth.voices[v].active && !is_black_key(synth.voices[v].note))
+                if (synth.voices[v].active &&
+                    (synth.arp || (!synth.arp && synth.voices[v].adsr->state != ENV_RELEASE)) &&
+                    !is_black_key(synth.voices[v].note))
                     render_key(synth.voices[v].note);
             /* Now we render the black keys */
             render_black_keys();
             for (int v = 0; v < VOICES; v++)
-                if (synth.voices[v].active && is_black_key(synth.voices[v].note))
+                if (synth.voices[v].active &&
+                    (synth.arp || (!synth.arp && synth.voices[v].adsr->state != ENV_RELEASE)) &&
+                    is_black_key(synth.voices[v].note))
                     render_key(synth.voices[v].note);
         EndDrawing();
     }
