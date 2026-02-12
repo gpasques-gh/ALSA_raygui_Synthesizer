@@ -276,6 +276,8 @@ void render_black_keys()
 /* Renders given note into a pressed key in the MIDI piano visualizer */
 void render_key(int midi_note, bool arp)
 {
+    if (midi_note < 0)
+        return;
     /* Getting the key position from the MIDI note */
     int width = 0, height = 0, x = 0, y = 0, is_black = 0;
     get_key_position(midi_note, &x, &y, &width, &height, &is_black);

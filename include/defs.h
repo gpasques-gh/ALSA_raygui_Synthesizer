@@ -72,7 +72,7 @@
 #define A_4 440
 #define RATE 44100
 #define DEFAULT_AMPLITUDE 0.5
-#define A4_POSITION 58
+#define A4_POSITION 57
 
 /* Oscillators waveforms */
 #define SINE_WAVE 0
