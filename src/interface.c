@@ -181,7 +181,7 @@ void render_options(
         DrawRectangleRounded((Rectangle){1340, 340, 5, 40}, 0.2, 10, RED);
     }
         
-    if (GuiCheckBox((Rectangle){1350, 230, 40, 40}, "Arpeggiator", &synth->arp))
+    if (GuiCheckBox((Rectangle){1350, 240, 40, 40}, "Arpeggiator", &synth->arp))
     {
         for (int v = 0; v < VOICES; v++)
         {
@@ -190,7 +190,8 @@ void render_options(
         }
     }
 
-    GuiSlider((Rectangle){1350, 280, 225, 40}, NULL, NULL, &synth->bpm, 0.0, 250.0);
+    GuiLabel((Rectangle){1400, 290, 100, 20}, "BPM");
+    GuiSlider((Rectangle){1350, 310, 225, 40}, NULL, NULL, &synth->bpm, 0.0, 250.0);
 }
 
 /* Render the effects parameters */
