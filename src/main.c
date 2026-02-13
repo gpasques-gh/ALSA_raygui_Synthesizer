@@ -219,26 +219,30 @@ int main(int argc, char **argv)
         {
             get_midi(midi_in, &synth, &attack, &decay, &sustain, &release);
         }
-            
-        double tmp_buffer[FRAMES];
-        memset(tmp_buffer, 0, FRAMES * sizeof(double));
-        process_voices(&synth, tmp_buffer, &active_voices);
 
+        for (int v = 0; v < VOICES; v++)
+        {
+            if (synth.voices[v].adsr->state != ENV_IDLE)
+            {
+                active_voices++;
+            }
+        }
+            
         for (int i = 0; i < FRAMES; i++)
         {
             process_lfo(&synth);
-            double sample_d = tmp_buffer[i];
-            short sample_s;
-            sample_d = process_gain(synth, sample_d, active_voices);
-            sample_d = process_filter(&synth, sample_d);
-            sample_s = (short)(sample_d * 32767.0);
+            double sample = process_voices(&synth);
+            sample = process_gain(synth, sample, active_voices);
+            sample = process_filter(&synth, sample);
+            buffer[i] = (short)(sample * 32767.0);
             if (distortion_on)
             {
-                sample_s = distortion(sample_s, distortion_amount, overdrive);
+                buffer[i] = distortion(buffer[i], distortion_amount, overdrive);
             }
-            buffer[i] = sample_s;
             process_arpeggiator(&synth, active_voices);
         }
+
+        active_voices = 0;
             
         int err = snd_pcm_writei(handle, buffer, FRAMES);
         if (err == -EPIPE)

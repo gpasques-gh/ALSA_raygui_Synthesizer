@@ -110,9 +110,11 @@ float adsr_process(adsr_t *adsr)
 
 
 /* Process the synth voices into the sound buffer */
-void process_voices(synth_t *synth, double *tmp_buffer, int *active_voices)
+double process_voices(synth_t *synth)
 {
-    *active_voices = 0;
+
+
+    double mixed_voices = 0.0;
 
     for (int v = 0; v < VOICES; v++)
     {
@@ -121,67 +123,65 @@ void process_voices(synth_t *synth, double *tmp_buffer, int *active_voices)
         {
             continue;
         }
-        (*active_voices)++;
 
         if ((synth->arp && v == synth->active_arp) || !synth->arp)
         {
-            for (int i = 0; i < FRAMES; i++)
+            float envelope = adsr_process(voice->adsr);
+            double mixed_osc = 0.0;
+
+            for (int o = 0; o < 3; o++)
             {
-                float envelope = adsr_process(voice->adsr);
-                double mixed = 0.0;
+                osc_t *osc = &voice->oscillators[o];
+                double phase_inc = osc->freq / RATE;
+                double sample;
 
-                for (int o = 0; o < 3; o++)
+                switch (*osc->wave)
                 {
-                    osc_t *osc = &voice->oscillators[o];
-                    double phase_inc = osc->freq / RATE;
-                    double sample;
-
-                    switch (*osc->wave)
-                    {
-                    case SINE_WAVE:
-                        sample = sin(2.0 * M_PI * osc->phase);
-                        break;
-                    case SQUARE_WAVE:
-                        sample = (osc->phase < 0.5) ? 1.0 : -1.0;
-                        break;
-                    case TRIANGLE_WAVE:
-                        sample = 1.0 - 4.0 * fabs(osc->phase - 0.5);
-                        break;
-                    case SAWTOOTH_WAVE:
-                        sample = 2.0 * osc->phase - 1.0;
-                        break;
-                    default:
-                        sample = 0.0;
-                        break;
-                    }
-
-                    mixed += sample;
-
-                    osc->phase += phase_inc;
-                    if (osc->phase >= 1.0)
-                    {
-                        osc->phase -= 1.0;
-                    }
+                case SINE_WAVE:
+                    sample = sin(2.0 * M_PI * osc->phase);
+                    break;
+                case SQUARE_WAVE:
+                    sample = (osc->phase < 0.5) ? 1.0 : -1.0;
+                    break;
+                case TRIANGLE_WAVE:
+                    sample = 1.0 - 4.0 * fabs(osc->phase - 0.5);
+                    break;
+                case SAWTOOTH_WAVE:
+                    sample = 2.0 * osc->phase - 1.0;
+                    break;
+                default:
+                    sample = 0.0;
+                    break;
                 }
 
-                /* Oscillator sound mix */
-                mixed /= 3.0;
-                mixed *= envelope;
-                mixed *= voice->velocity_amp;
+                mixed_osc += sample;
 
-                if (synth->lfo->mod_param == LFO_AMP)
+                osc->phase += phase_inc;
+                if (osc->phase >= 1.0)
                 {
-                    mixed *= synth->lfo_amp;
+                    osc->phase -= 1.0;
                 }
-                else
-                {
-                    mixed *= synth->amp;
-                }
-
-                tmp_buffer[i] += mixed;
             }
+
+            /* Oscillator sound mix */
+            mixed_osc /= 3.0;
+            mixed_osc *= envelope;
+            mixed_osc *= voice->velocity_amp;
+
+            if (synth->lfo->mod_param == LFO_AMP)
+            {
+                mixed_osc *= synth->lfo_amp;
+            }
+            else
+            {
+                mixed_osc *= synth->amp;
+            }
+
+            mixed_voices += mixed_osc;
         }
     }
+    
+    return mixed_voices;
 }
 
 /* Process the LFO modulation */

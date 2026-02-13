@@ -96,7 +96,7 @@ typedef struct
 float adsr_process(adsr_t *adsr);
 
 /* Process the synth voices into the sound buffer */
-void process_voices(synth_t *synth, double *tmp_buffer, int *active_voices);
+double process_voices(synth_t *synth);
 
 /* Process the LFO modulation */
 void process_lfo(synth_t *synth);
