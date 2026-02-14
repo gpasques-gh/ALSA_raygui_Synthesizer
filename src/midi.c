@@ -19,7 +19,6 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
 
     if (ret < 0)
     {
-        fprintf(stderr, "midi read error\n");
         return 1;
     }
         
