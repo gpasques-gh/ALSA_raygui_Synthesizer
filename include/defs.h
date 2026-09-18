@@ -1,7 +1,12 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#ifdef __WINDOWS__
+#include "raylib/src/raylib.h"
+#elif defined(__LINUX__)
 #include <raylib.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

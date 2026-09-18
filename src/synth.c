@@ -1,4 +1,10 @@
-#define _GNU_SOURCE
+
+#ifdef __LINUX__
+    #define _GNU_SOURCE
+#elif defined(__WINDOWS__)
+    #define M_PI 3.14159265359
+#endif
+
 #include <math.h>
 
 #include "defs.h"
@@ -112,8 +118,6 @@ float adsr_process(adsr_t *adsr)
 /* Process the synth voices into the sound buffer */
 double process_voices(synth_t *synth)
 {
-
-
     double mixed_voices = 0.0;
 
     for (int v = 0; v < VOICES; v++)
@@ -304,8 +308,6 @@ void process_arpeggiator(synth_t *synth, int active_voices)
             {
                 synth->active_arp = 0;
             }
-                
-
             synth->active_arp_float = 0.0;
             
             /* Reseting ADSR envelope */
@@ -317,11 +319,6 @@ void process_arpeggiator(synth_t *synth, int active_voices)
                     synth->filter->adsr->state = ENV_ATTACK;
                 }
             }
-
-            /* debug logs */
-            //fprintf(stderr, "\nfirst note %d\n", synth->voices[0].note);
-            //fprintf(stderr, "active voices %d\n", active_voices);
-            //fprintf(stderr, "active arp %d\n", synth->active_arp);
         }
     }
 }
@@ -366,8 +363,10 @@ void apply_detune_change(synth_t *synth)
     for (int v = 0; v < VOICES; v++)
     {
         int a4_diff = synth->voices[v].note - A4_POSITION;
-        synth->voices[v].oscillators[1].freq = A_4 * pow(2, a4_diff / 12.0) + (5 * detune);
-        synth->voices[v].oscillators[2].freq = A_4 * pow(2, a4_diff / 12.0) - (5 * detune);
+        synth->voices[v].oscillators[1].freq = 
+            A_4 * pow(2, a4_diff / 12.0) + (5 * detune);
+        synth->voices[v].oscillators[2].freq = 
+            A_4 * pow(2, a4_diff / 12.0) - (5 * detune);
     }
 }
 

@@ -1,3 +1,5 @@
+#ifdef __LINUX__
+
 #include <libxml2/libxml/parser.h>
 #include <libxml2/libxml/tree.h>
 #include <raygui.h>
@@ -26,8 +28,10 @@ int save_preset(
 
     char filename[1024] = "presets/";
 
+    int osef = 0;
+
     /* Textbox for the preset name */
-    int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, "Preset name :", "", "Save preset", preset_filename, 20, false);
+    int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, "Preset name :", "", "Save preset", 20, preset_filename, &osef, false);
 
     if (res == 0)
     {
@@ -798,3 +802,5 @@ int parse_adsr(
     }
     return 0;
 }
+
+#endif

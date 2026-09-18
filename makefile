@@ -15,9 +15,35 @@ SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 DEPS = $(OBJS:.o=.d)
 
-# Flags
-CFLAGS = -Wall -Wextra -O2 -I$(INC_DIR) -I/usr/include/libxml2 -MMD -MP
-LDFLAGS = -lasound -lm -lraylib -lxml2 -lX11
+# --- Détection de l'OS ---
+ifeq ($(OS),Windows_NT)
+    DETECTED_OS = Windows
+else
+    DETECTED_OS = $(shell uname -s)
+endif
+
+# Flags communs
+CFLAGS = -Wall -Wextra -O2 -I$(INC_DIR) -MMD -MP
+LDFLAGS =
+
+# Flags spécifiques à l'OS
+ifeq ($(DETECTED_OS),Windows)
+    TARGET := $(TARGET).exe
+    CFLAGS += -D_WIN32_WINNT=0x0601 -D__WINDOWS__ -Iexternal/ 
+    LDFLAGS += -Lexternal/raylib/src/ -lraylib -lm -lksuser -lwinmm -lgdi32 -lopengl32
+    RM = powershell -Command Remove-Item -Recurse -Force $$args
+    MKDIR = mkdir
+else ifeq ($(DETECTED_OS),Linux)
+    CFLAGS += -I/usr/include/libxml2 -D__LINUX__
+    LDFLAGS += -lasound -lm -lraylib -lxml2 -lX11
+    RM = rm -rf
+    MKDIR = mkdir -p
+else ifeq ($(DETECTED_OS),Darwin)
+    CFLAGS += -I/usr/local/include/libxml2 -I/opt/homebrew/include/libxml2 -D__MACOS__
+    LDFLAGS += -lm -lraylib -lxml2
+    RM = rm -rf
+    MKDIR = mkdir -p
+endif
 
 # Default
 all: $(BIN_DIR)/$(TARGET)
@@ -32,14 +58,18 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 
 # Create directories if needed
 $(BIN_DIR):
-	mkdir -p $(BIN_DIR)
+	$(MKDIR) $(BIN_DIR)
 
 $(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
+	$(MKDIR) $(OBJ_DIR)
 
 # Clean
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)/$(TARGET)
+    ifeq ($(DETECTED_OS),Windows)
+	    powershell -Command "rm -Recurse -Force '$(BIN_DIR)', '$(OBJ_DIR)'"
+    else
+        $(RM) $(BIN_DIR) $(OBJ_DIR)
+    endif
 
 # Rebuild
 re: clean all
@@ -48,4 +78,4 @@ run:
 	./$(BIN_DIR)/$(TARGET)
 
 -include $(DEPS)
-.PHONY: all clean re
+.PHONY: all clean re run

@@ -1,8 +1,6 @@
 #ifndef INTERFACE_H
 #define INTERFACE_H
 
-#include <libxml2/libxml/parser.h>
-
 #include "synth.h"
 
 /* Render the ADSR envelope sliders */

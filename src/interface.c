@@ -1,7 +1,10 @@
 #include <stdio.h>
-#include <libxml2/libxml/parser.h>
-#include <libxml2/libxml/tree.h>
+
+#ifdef __WINDOWS__
+#include "raylib/src/raygui.h"
+#elif defined(__LINUX__)
 #include <raygui.h>
+#endif 
 
 #include "defs.h"
 #include "interface.h"
@@ -162,8 +165,8 @@ void render_options(
 
     if (*saving_audio_file)
     {
-        int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100},
-                                  "Audio file name :", "", "Start recording", audio_filename, 20, false);
+        int osef = 0;
+        int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, "Audio file name :", "", "Start recording", 20, audio_filename, &osef, false);
         if (res == 0)
         {
             *saving_audio_file = false;

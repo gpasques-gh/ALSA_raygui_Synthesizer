@@ -1,16 +1,51 @@
 #define RAYGUI_IMPLEMENTATION
-#include <raygui.h>
+
+#ifdef __WINDOWS__
+
+#include "win_defs.h"
+#include "raylib/src/raygui.h"
+#include <windows.h>
+
+#ifdef NOGDI
+typedef struct tagBITMAPINFOHEADER {
+    DWORD biSize;
+    LONG  biWidth;
+    LONG  biHeight;
+    WORD  biPlanes;
+    WORD  biBitCount;
+    DWORD biCompression;
+    DWORD biSizeImage;
+    LONG  biXPelsPerMeter;
+    LONG  biYPelsPerMeter;
+    DWORD biClrUsed;
+    DWORD biClrImportant;
+} BITMAPINFOHEADER, *PBITMAPINFOHEADER, *LPBITMAPINFOHEADER;
+#endif
+
+#include <mmsystem.h>
+#include <mmreg.h>
+#include <ks.h>
+#include <ksmedia.h>
+
+#elif defined(__LINUX__)
+
 #include <unistd.h>
 #include <alsa/asoundlib.h>
+#include "xml.h"
+#include <raygui.h>
+
+#endif
+
+#include <float.h>
+#include <stdint.h>
 
 #include "defs.h"
 #include "interface.h"
 #include "synth.h"
-#include "midi.h"
 #include "keyboard.h"
 #include "record.h"
 #include "effects.h"
-#include "xml.h"
+#include "midi.h"
 
 /* Prints the usage of the CLI arguments into the error output */
 void usage()
@@ -19,6 +54,35 @@ void usage()
     fprintf(stderr, "use amidi -l to list your connected midi devices and find your midi device hardware id, often something like : hw:0,0,0 or hw:1,0,0\n");
     fprintf(stderr, "to see this helper again, use synth -h or synth -help\n");
 }
+
+#if !defined(__WINDOWS__) && !defined(__LINUX__)
+    #error "Unsupported OS."
+#endif
+
+#ifdef __WINDOWS__
+#define NUM_BUFFERS 4
+
+static HWAVEOUT wave_out;
+static WAVEHDR headers[NUM_BUFFERS];
+static volatile LONG done = 0;
+static float buffers[NUM_BUFFERS][FRAMES];
+static volatile LONG buffer_free[NUM_BUFFERS] = {1, 1, 1, 1};
+
+void CALLBACK waveOutProc(
+    HWAVEOUT wave_out,
+    UINT msg,
+    DWORD_PTR instance,
+    DWORD_PTR param1,
+    DWORD_PTR param2)
+{
+    if (msg == WOM_DONE)
+    {
+        WAVEHDR *hdr = (WAVEHDR *)param1;
+        int32_t index = (int32_t)(hdr - headers);
+        InterlockedExchange(&buffer_free[index], 1);
+    }
+}
+#endif 
 
 /* Main function */
 int main(int argc, char **argv)
@@ -46,7 +110,6 @@ int main(int argc, char **argv)
         }
     }
     
-
     int octave = DEFAULT_OCTAVE;
 
     int wave_a = SINE_WAVE, wave_b = SINE_WAVE, wave_c = SINE_WAVE;
@@ -150,6 +213,97 @@ int main(int argc, char **argv)
         synth.voices[i].oscillators[2].wave = &wave_c;
     }
 
+    short buffer[FRAMES];
+    memset(buffer, 0, sizeof(short) * FRAMES);
+#ifdef __WINDOWS__
+
+    UINT sound_devices = waveOutGetNumDevs();
+    for (UINT i = 0; i < sound_devices; i++)
+    {
+        WAVEOUTCAPS caps;
+        if (waveOutGetDevCaps(i, &caps, sizeof(WAVEOUTCAPS)) == MMSYSERR_NOERROR)
+            fprintf(stderr, "device %u: %s\n", i, caps.szPname);
+    }
+
+    timeBeginPeriod(1);
+
+    WAVEFORMATEXTENSIBLE wfx = {0};
+    wfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
+    wfx.Format.nChannels = MONO;
+    wfx.Format.nSamplesPerSec = RATE;
+    wfx.Format.wBitsPerSample = 32;
+    wfx.Format.nBlockAlign = wfx.Format.nChannels * (wfx.Format.wBitsPerSample / 8);
+    wfx.Format.nAvgBytesPerSec = wfx.Format.nSamplesPerSec * wfx.Format.nBlockAlign;
+    wfx.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
+
+    wfx.Samples.wValidBitsPerSample = 32;
+    wfx.dwChannelMask = SPEAKER_FRONT_CENTER;
+    wfx.SubFormat = KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
+
+    MMRESULT sound_res = waveOutOpen(
+        &wave_out,
+        WAVE_MAPPER,
+        (WAVEFORMATEX *)&wfx,
+        (DWORD_PTR)waveOutProc,
+        0, CALLBACK_FUNCTION);
+
+    if (sound_res != MMSYSERR_NOERROR)
+        return 1;
+
+    uint8_t current_buffer = 0;
+
+    HMIDIIN midi_in;
+    midi_queue_t midi_queue;
+
+    uint8_t midi_valid = 1;
+    LONG midi_id;
+    UINT midi_devices;
+
+    if (midi_input)
+    {
+        midi_devices = midiInGetNumDevs();
+        if (midi_devices == 0)
+        {
+            fprintf(stderr, "no midi device found.\n");
+            midi_valid = 0;
+        }
+
+        char *endptr;
+        midi_id = 
+            strtol(midi_device, &endptr, 10);
+        if (endptr == midi_device)
+            midi_valid = 0;
+        else if (midi_id < 0 || midi_id > midi_devices)
+            midi_valid = 0;
+    }
+
+    if (midi_input && midi_valid)
+    {
+        for (UINT i = 0; i < midi_devices; i++)
+        {
+            MIDIINCAPS caps;
+            midiInGetDevCaps(i, &caps, sizeof(MIDIINCAPS));
+            printf("midi_device: [%u] %s\n", i, caps.szPname);
+        }
+
+        midi_queue_init(&midi_queue);
+
+        MMRESULT midi_res = midiInOpen(
+            &midi_in, 1, 
+            (DWORD_PTR)MidiInProc, 
+            (DWORD_PTR)&midi_queue, 
+            CALLBACK_FUNCTION);
+
+        if (midi_res != MMSYSERR_NOERROR)
+        {
+            fprintf(stderr, "error while opening midi device.\n");
+            return 1;
+        }
+
+        midiInStart(midi_in);
+    }
+
+#elif defined(__LINUX__)
     snd_pcm_t *handle = NULL;
     if (snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0)
     {
@@ -170,9 +324,6 @@ int main(int argc, char **argv)
     }
 
     snd_pcm_prepare(handle);
-
-    short buffer[FRAMES];
-    memset(buffer, 0, sizeof(short) * FRAMES);
     snd_pcm_writei(handle, buffer, FRAMES);
 
     snd_rawmidi_t *midi_in;
@@ -184,8 +335,7 @@ int main(int argc, char **argv)
             goto cleanup_alsa;
         }
     }
-        
-
+#endif
     char audio_filename[1024] = "\0";
     FILE *fwav = NULL;
     wav_header_t header;
@@ -202,6 +352,7 @@ int main(int argc, char **argv)
 
     char preset_filename[1024] = "\0";
 
+    SetTraceLogLevel(LOG_WARNING);
     InitWindow(WIDTH, HEIGHT, "ALSA & raygui synthesizer");
     Font annotation = LoadFont("Regular.ttf");
     GuiSetFont(annotation);
@@ -217,11 +368,13 @@ int main(int argc, char **argv)
             handle_release(&synth, octave);
         }
 
+#ifdef __WINDOWS__
+        if (midi_valid)
+            poll_midi_queue(&midi_queue, &synth);
+#elifdef __LINUX__
         if (midi_input)
-        {
             get_midi(midi_in, &synth, &attack, &decay, &sustain, &release);
-        }
-
+#endif
         for (int v = 0; v < VOICES; v++)
         {
             if (synth.voices[v].adsr->state != ENV_IDLE)
@@ -245,7 +398,26 @@ int main(int argc, char **argv)
         }
 
         active_voices = 0;
-            
+#ifdef __WINDOWS__
+        while (!InterlockedCompareExchange(&buffer_free[current_buffer], 0, 1))
+            Sleep(1);
+
+        if (headers[current_buffer].dwFlags & WHDR_PREPARED)
+            waveOutUnprepareHeader(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
+
+        for (uint16_t i = 0; i < FRAMES; i++)
+            buffers[current_buffer][i] =
+                (float)buffer[i] / 32768.0f;
+
+        headers[current_buffer].lpData = (LPSTR)buffers[current_buffer];
+        headers[current_buffer].dwBufferLength = FRAMES * sizeof(float);
+        headers[current_buffer].dwFlags = 0;
+
+        waveOutPrepareHeader(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
+        waveOutWrite(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
+        
+        current_buffer = (current_buffer + 1) % NUM_BUFFERS;
+#elif defined(__LINUX__)
         int err = snd_pcm_writei(handle, buffer, FRAMES);
         if (err == -EPIPE)
         {
@@ -257,7 +429,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "ALSA write error: %s\n", snd_strerror(err));
             snd_pcm_prepare(handle);
         }
-
+#endif 
         if (fwav != NULL && recording == true)
         {
             fwrite(buffer, 2, FRAMES, fwav);
@@ -305,7 +477,7 @@ int main(int argc, char **argv)
                 &lfo_wave_ddm, &lfo_params_ddm,
                 &distortion_on, &overdrive,
                 &distortion_amount);
-
+#ifdef __LINUX__
             if (loading_preset)
             {
                 load_preset(
@@ -327,7 +499,7 @@ int main(int argc, char **argv)
                     distortion_on, overdrive,
                     distortion_amount);
             }
-                
+#endif
             render_white_keys();
             for (int v = 0; v < VOICES; v++)
             {
@@ -364,11 +536,21 @@ int main(int argc, char **argv)
 
     CloseWindow();
 
+#ifdef __LINUX__
     if (midi_in)
     {
         snd_rawmidi_close(midi_in);
     }
+#elif defined(__WINDOWS__)
+    waveOutClose(wave_out);
+    timeEndPeriod(1);
 
+    if (midi_valid)
+    {
+        midiInStop(midi_in);
+        midiInClose(midi_in);
+    }
+#endif
     /* If we quit the application during recording, change WAV header and close WAV file */
     if (fwav != NULL && recording)
     {
@@ -379,12 +561,14 @@ int main(int argc, char **argv)
         close_wav_file(fwav);
     }
 
+#ifdef __LINUX__
 cleanup_alsa:
     if (handle)
     {
         snd_pcm_drain(handle);
         snd_pcm_close(handle);
     }
+#endif
 cleanup_synth:
     for (int i = 0; i < VOICES; i++)
     {
@@ -392,6 +576,7 @@ cleanup_synth:
         free(synth.voices[i].oscillators);
     }
     free(synth.voices);
+
 
     return 0;
 }

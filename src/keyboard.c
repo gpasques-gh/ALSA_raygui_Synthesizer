@@ -201,8 +201,6 @@ void release_note(synth_t *synth, int midi_note)
         }
     }
         
-            
-
     for (int v = 0; v < VOICES; v++)
     {
         if (synth->voices[v].note == midi_note && 
