@@ -1,10 +1,13 @@
-#ifdef __LINUX__
-
 #ifndef XML_H
 #define XML_H
 
+#ifdef __WINDOWS__
+#include "libxml/parser.h"
+#include "libxml/tree.h"
+#elif defined(__LINUX__)
 #include <libxml2/libxml/parser.h>
 #include <libxml2/libxml/tree.h>
+#endif
 
 #include "synth.h"
 
@@ -66,5 +69,4 @@ int parse_adsr(
     float *sustain, float *release,
     bool filter);
 
-#endif
 #endif

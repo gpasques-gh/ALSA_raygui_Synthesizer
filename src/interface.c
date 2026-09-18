@@ -2,6 +2,8 @@
 
 #ifdef __WINDOWS__
 #include "raylib/src/raygui.h"
+#include "win_defs.h"
+#include <windows.h>
 #elif defined(__LINUX__)
 #include <raygui.h>
 #endif 
@@ -74,7 +76,6 @@ void render_osc_waveforms(
         *ddm_a = !*ddm_a;
     }
         
-
     GuiLabel((Rectangle){250, 265, 110, 20}, "Oscillator B");
     if (GuiDropdownBox((Rectangle){230, 285, 140, 40},
                        "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth",
@@ -162,16 +163,10 @@ void render_options(
         *recording = false;
     }
         
-
     if (*saving_audio_file)
     {
-        int osef = 0;
-        int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, "Audio file name :", "", "Start recording", 20, audio_filename, &osef, false);
-        if (res == 0)
-        {
-            *saving_audio_file = false;
-        }
-        else if (res == 1)
+        int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, "Audio file name :", "", audio_filename, 20, "Start recording", (int *)saving_audio_file, false);
+        if (res == 1)
         {
             *recording = true;
             *saving_audio_file = false;

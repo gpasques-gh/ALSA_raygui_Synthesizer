@@ -31,7 +31,6 @@ typedef struct tagBITMAPINFOHEADER {
 
 #include <unistd.h>
 #include <alsa/asoundlib.h>
-#include "xml.h"
 #include <raygui.h>
 
 #endif
@@ -39,6 +38,7 @@ typedef struct tagBITMAPINFOHEADER {
 #include <float.h>
 #include <stdint.h>
 
+#include "xml.h"
 #include "defs.h"
 #include "interface.h"
 #include "synth.h"
@@ -289,7 +289,7 @@ int main(int argc, char **argv)
         midi_queue_init(&midi_queue);
 
         MMRESULT midi_res = midiInOpen(
-            &midi_in, 1, 
+            &midi_in, midi_id, 
             (DWORD_PTR)MidiInProc, 
             (DWORD_PTR)&midi_queue, 
             CALLBACK_FUNCTION);
@@ -371,7 +371,7 @@ int main(int argc, char **argv)
 #ifdef __WINDOWS__
         if (midi_valid)
             poll_midi_queue(&midi_queue, &synth);
-#elifdef __LINUX__
+#elif defined(__LINUX__)
         if (midi_input)
             get_midi(midi_in, &synth, &attack, &decay, &sustain, &release);
 #endif
@@ -477,7 +477,7 @@ int main(int argc, char **argv)
                 &lfo_wave_ddm, &lfo_params_ddm,
                 &distortion_on, &overdrive,
                 &distortion_amount);
-#ifdef __LINUX__
+                
             if (loading_preset)
             {
                 load_preset(
@@ -499,7 +499,7 @@ int main(int argc, char **argv)
                     distortion_on, overdrive,
                     distortion_amount);
             }
-#endif
+
             render_white_keys();
             for (int v = 0; v < VOICES; v++)
             {

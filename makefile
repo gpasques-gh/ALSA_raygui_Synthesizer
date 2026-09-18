@@ -29,8 +29,8 @@ LDFLAGS =
 # Flags spécifiques à l'OS
 ifeq ($(DETECTED_OS),Windows)
     TARGET := $(TARGET).exe
-    CFLAGS += -D_WIN32_WINNT=0x0601 -D__WINDOWS__ -Iexternal/ 
-    LDFLAGS += -Lexternal/raylib/src/ -lraylib -lm -lksuser -lwinmm -lgdi32 -lopengl32
+    CFLAGS += -D_WIN32_WINNT=0x0601 -D__WINDOWS__ -Iexternal/ -Iexternal/libxml/include/
+    LDFLAGS += -Lexternal/raylib/src/ -lraylib -Lexternal/libxml/lib/ -lxml2 -lm -lksuser -lwinmm -lgdi32 -lopengl32 -lole32 -luuid -lshell32 -lws2_32
     RM = powershell -Command Remove-Item -Recurse -Force $$args
     MKDIR = mkdir
 else ifeq ($(DETECTED_OS),Linux)

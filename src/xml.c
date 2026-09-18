@@ -1,8 +1,31 @@
-#ifdef __LINUX__
+#ifdef __WINDOWS__
+#include "libxml/parser.h"
+#include "libxml/tree.h"
 
+/* Include Win32 before raylib. Do not use NOUSER here: shobjidl.h needs MSG/LPMSG.
+ * Rename CloseWindow/ShowCursor so winuser.h does not clash with raylib. */
+#define INITGUID
+#define WIN32_LEAN_AND_MEAN
+#define NOGDI
+#define CloseWindow CloseWindowWin32
+#define ShowCursor ShowCursorWin32
+#include <windows.h>
+#include <shobjidl.h>
+#undef CloseWindow
+#undef ShowCursor
+#undef LoadImage
+#undef DrawText
+#undef DrawTextEx
+#undef PlaySound
+
+#include "raylib/src/raylib.h"
+#include "raylib/src/raygui.h"
+
+#elif defined(__LINUX__)
 #include <libxml2/libxml/parser.h>
 #include <libxml2/libxml/tree.h>
 #include <raygui.h>
+#endif
 
 #include "defs.h"
 #include "xml.h"
@@ -28,16 +51,10 @@ int save_preset(
 
     char filename[1024] = "presets/";
 
-    int osef = 0;
-
     /* Textbox for the preset name */
-    int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, "Preset name :", "", "Save preset", 20, preset_filename, &osef, false);
+    int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, "Preset name :", "", preset_filename, 20, "Save preset", (int *)saving_preset, false);
 
-    if (res == 0)
-    {
-        *saving_preset = false;
-    }
-    else if (res == 1)
+    if (res == 1)
     {
         *saving_preset = false;
         strcat(filename, preset_filename);
@@ -184,6 +201,76 @@ int load_preset(
     bool *loading_preset)
 {
     char filename[1024];
+
+#ifdef __WINDOWS__
+    HRESULT hr = CoInitializeEx(
+        NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    if (!SUCCEEDED(hr))
+    {
+        fprintf(stderr, "error while opening windows file dialog.\n");
+        *loading_preset = false;
+        return 1;
+    }
+    
+    IFileOpenDialog *file_dialog;
+    hr = CoCreateInstance(&CLSID_FileOpenDialog, NULL, CLSCTX_ALL, 
+        &IID_IFileOpenDialog, (void **)(&file_dialog));
+
+    if (!SUCCEEDED(hr))
+    {
+        CoUninitialize();
+        fprintf(stderr, "error while opening windows file dialog.\n");
+        *loading_preset = false;
+        return 1;
+    }
+
+    hr = file_dialog->lpVtbl->Show(file_dialog, NULL);
+
+    if (!SUCCEEDED(hr))
+    {
+        file_dialog->lpVtbl->Release(file_dialog);
+        CoUninitialize();
+        fprintf(stderr, "error while opening windows file dialog.\n");
+        *loading_preset = false;
+        return 1;
+    }
+
+    IShellItem *item;
+    hr = file_dialog->lpVtbl->GetResult(file_dialog, &item);
+
+    if (!SUCCEEDED(hr))
+    {
+        file_dialog->lpVtbl->Release(file_dialog);
+        CoUninitialize();
+        fprintf(stderr, "error while opening windows file dialog.\n");
+        *loading_preset = false;
+        return 1;
+    }
+
+    PWSTR file_path;
+    hr = item->lpVtbl->GetDisplayName(
+        item, SIGDN_FILESYSPATH, &file_path);
+
+    if (!SUCCEEDED(hr))
+    {
+        item->lpVtbl->Release(item);
+        file_dialog->lpVtbl->Release(file_dialog);
+        CoUninitialize();
+        fprintf(stderr, "error while opening windows file dialog.\n");
+        *loading_preset = false;
+        return 1;
+    }
+
+    WideCharToMultiByte(
+        CP_UTF8, 0, 
+        file_path, -1, 
+        filename, sizeof(filename), 
+        NULL, NULL);
+    CoTaskMemFree(file_path);
+    item->lpVtbl->Release(item);
+    file_dialog->lpVtbl->Release(file_dialog);
+    CoUninitialize();
+#elif defined(__LINUX__)
     const char *home = getenv("HOME");
     char zenity_command[1024] = "zenity --file-selection --filename '";
     strcat(zenity_command, home);
@@ -193,6 +280,7 @@ int load_preset(
     fgets(filename, 1024, f);
     filename[strcspn(filename, "\n")] = '\0';
     pclose(f);
+#endif
 
     /* Getting the XML document pointer */
     xmlDoc *doc = NULL;
@@ -802,5 +890,3 @@ int parse_adsr(
     }
     return 0;
 }
-
-#endif
