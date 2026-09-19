@@ -1,7 +1,7 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__) && !defined(__NO_RL__)
 #include "raylib/src/raylib.h"
 #elif defined(__LINUX__)
 #include <raylib.h>
@@ -30,6 +30,7 @@
 #define AZERTY 1
 
 /* Keyboard note keys */
+#if !defined(__NO_RL__)
 #define kC KEY_A
 #define kC_SHARP KEY_W
 #define kD KEY_S
@@ -54,6 +55,7 @@
 #define KEY_DEC KEY_X
 #define KEY_SUS KEY_C
 #define KEY_REL KEY_V
+#endif
 
 /* MIDI packets informations */
 #define MIDI_MAX_VALUE 127.0
@@ -100,6 +102,9 @@
 #define MONO 1
 #define STEREO 2
 #define BITS 16
+#ifdef __WINDOWS__
+#define NUM_BUFFERS 4
+#endif
 
 /* SDL interface */
 #define WIDTH 1769

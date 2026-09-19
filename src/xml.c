@@ -2,8 +2,6 @@
 #include "libxml/parser.h"
 #include "libxml/tree.h"
 
-/* Include Win32 before raylib. Do not use NOUSER here: shobjidl.h needs MSG/LPMSG.
- * Rename CloseWindow/ShowCursor so winuser.h does not clash with raylib. */
 #define INITGUID
 #define WIN32_LEAN_AND_MEAN
 #define NOGDI

@@ -91,6 +91,8 @@ static void __apply_midi_event(
 
 static midi_queue_t g_midi_queue;
 
+static volatile float latency_check;
+
 void midi_queue_init(midi_queue_t *q)
 {
     q->head = 0;
@@ -106,9 +108,9 @@ void CALLBACK MidiInProc(
 {
     if (msg != MIM_DATA)
         return;
-
+    
     midi_queue_t *q = (midi_queue_t *)instance;
-
+    
     BYTE status = param1 & 0xFF;
     BYTE data1 = (param1 >> 8) & 0xFF;
     BYTE data2 = (param1 >> 16) & 0xFF;

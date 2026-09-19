@@ -27,6 +27,8 @@ typedef struct tagBITMAPINFOHEADER {
 #include <ks.h>
 #include <ksmedia.h>
 
+#include "audio_thread.h"
+
 #elif defined(__LINUX__)
 
 #include <unistd.h>
@@ -48,7 +50,7 @@ typedef struct tagBITMAPINFOHEADER {
 #include "midi.h"
 
 /* Prints the usage of the CLI arguments into the error output */
-void usage()
+static void usage()
 {
     fprintf(stderr, "synth -midi <midi hardware id> : midi keyboard input, able to change parameters of the sounds (ADSR, cutoff, detune and oscillators waveforms)\n");
     fprintf(stderr, "use amidi -l to list your connected midi devices and find your midi device hardware id, often something like : hw:0,0,0 or hw:1,0,0\n");
@@ -60,13 +62,6 @@ void usage()
 #endif
 
 #ifdef __WINDOWS__
-#define NUM_BUFFERS 4
-
-static HWAVEOUT wave_out;
-static WAVEHDR headers[NUM_BUFFERS];
-static volatile LONG done = 0;
-static float buffers[NUM_BUFFERS][FRAMES];
-static volatile LONG buffer_free[NUM_BUFFERS] = {1, 1, 1, 1};
 
 void CALLBACK waveOutProc(
     HWAVEOUT wave_out,
@@ -77,14 +72,14 @@ void CALLBACK waveOutProc(
 {
     if (msg == WOM_DONE)
     {
+        audio_thread_ctx_t *ctx = (audio_thread_ctx_t *)instance;
         WAVEHDR *hdr = (WAVEHDR *)param1;
-        int32_t index = (int32_t)(hdr - headers);
-        InterlockedExchange(&buffer_free[index], 1);
+        int idx = (int)((float *)hdr->lpData - &ctx->buffers[0][0]) / FRAMES;
+        InterlockedExchange(&ctx->buffer_free[idx], 1);
     }
 }
 #endif 
 
-/* Main function */
 int main(int argc, char **argv)
 {
     char midi_device[256];
@@ -213,6 +208,8 @@ int main(int argc, char **argv)
         synth.voices[i].oscillators[2].wave = &wave_c;
     }
 
+    synth_t *synth_ptr = &synth;
+
     short buffer[FRAMES];
     memset(buffer, 0, sizeof(short) * FRAMES);
 #ifdef __WINDOWS__
@@ -224,8 +221,6 @@ int main(int argc, char **argv)
         if (waveOutGetDevCaps(i, &caps, sizeof(WAVEOUTCAPS)) == MMSYSERR_NOERROR)
             fprintf(stderr, "device %u: %s\n", i, caps.szPname);
     }
-
-    timeBeginPeriod(1);
 
     WAVEFORMATEXTENSIBLE wfx = {0};
     wfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
@@ -240,27 +235,43 @@ int main(int argc, char **argv)
     wfx.dwChannelMask = SPEAKER_FRONT_CENTER;
     wfx.SubFormat = KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
 
+    /* init the audio thread context */
+    audio_thread_ctx_t ctx = {0};
+    ctx.synth = synth;
+    ctx.buffer_free[0] =
+        ctx.buffer_free[1] =
+        ctx.buffer_free[2] =
+        ctx.buffer_free[3] = 1;
+    InitializeCriticalSection(&ctx.lock);
+
+    /* open the wave out to the sound card */
+    HWAVEOUT wave_out;
     MMRESULT sound_res = waveOutOpen(
         &wave_out,
         WAVE_MAPPER,
         (WAVEFORMATEX *)&wfx,
         (DWORD_PTR)waveOutProc,
-        0, CALLBACK_FUNCTION);
+        (DWORD_PTR)&ctx, 
+        CALLBACK_FUNCTION);
 
     if (sound_res != MMSYSERR_NOERROR)
+    {
+        fprintf(stderr, "couldn't open sound card %lu", GetLastError());
         return 1;
+    }
 
-    uint8_t current_buffer = 0;
+    ctx.wave_out = wave_out;
 
+    /* handle the midi interface initialization */
     HMIDIIN midi_in;
-    midi_queue_t midi_queue;
-
     uint8_t midi_valid = 1;
     LONG midi_id;
     UINT midi_devices;
 
+    /* if the user specified midi input */
     if (midi_input)
     {
+        /* get the number of midi devices */
         midi_devices = midiInGetNumDevs();
         if (midi_devices == 0)
         {
@@ -268,17 +279,21 @@ int main(int argc, char **argv)
             midi_valid = 0;
         }
 
+        /* check if the given port 
+        is a valid integer */
         char *endptr;
         midi_id = 
             strtol(midi_device, &endptr, 10);
         if (endptr == midi_device)
             midi_valid = 0;
-        else if (midi_id < 0 || midi_id > midi_devices)
+        else if (midi_id < 0 || midi_id >= midi_devices)
             midi_valid = 0;
     }
 
-    if (midi_input && midi_valid)
+    /* if the informations from the user are correct */
+    if (midi_valid && midi_input)
     {
+        /* check the available midi devices */
         for (UINT i = 0; i < midi_devices; i++)
         {
             MIDIINCAPS caps;
@@ -286,12 +301,14 @@ int main(int argc, char **argv)
             printf("midi_device: [%u] %s\n", i, caps.szPname);
         }
 
-        midi_queue_init(&midi_queue);
+        /* initialize the midi queue */
+        midi_queue_init(&ctx.midi_queue);
 
+        /* open the midi interface */
         MMRESULT midi_res = midiInOpen(
             &midi_in, midi_id, 
             (DWORD_PTR)MidiInProc, 
-            (DWORD_PTR)&midi_queue, 
+            (DWORD_PTR)&ctx.midi_queue, 
             CALLBACK_FUNCTION);
 
         if (midi_res != MMSYSERR_NOERROR)
@@ -301,7 +318,29 @@ int main(int argc, char **argv)
         }
 
         midiInStart(midi_in);
+        fprintf(stderr, "midi started on port %ld\n", midi_id);
     }
+    else
+    {
+        midi_valid = 0;
+    }
+
+    ctx.midi_valid = midi_valid;
+
+    /* create the audio thread */
+    HANDLE audio_thread = CreateThread(
+        NULL, 0,
+        audio_thread_proc,
+        &ctx, 0, NULL);
+
+    if (audio_thread == NULL)
+    {
+        fprintf(stderr, "error while initializing audio thread: %lu\n", GetLastError());
+        exit(1);
+    }
+
+    SetThreadPriority(audio_thread, THREAD_PRIORITY_HIGHEST);
+    synth_ptr = &ctx.synth;
 
 #elif defined(__LINUX__)
     snd_pcm_t *handle = NULL;
@@ -369,54 +408,62 @@ int main(int argc, char **argv)
         }
 
 #ifdef __WINDOWS__
-        if (midi_valid)
-            poll_midi_queue(&midi_queue, &synth);
+        // if (midi_valid)
+        //     poll_midi_queue(&midi_queue, &synth);
+
+        ctx.distortion_on = distortion_on;
+        ctx.distortion_amount = distortion_amount;
+        ctx.overdrive = overdrive;
+
+        EnterCriticalSection(&ctx.lock);
+        memcpy(buffer, ctx.display_buffer, sizeof(buffer));
+        LeaveCriticalSection(&ctx.lock);
 #elif defined(__LINUX__)
         if (midi_input)
             get_midi(midi_in, &synth, &attack, &decay, &sustain, &release);
 #endif
-        for (int v = 0; v < VOICES; v++)
-        {
-            if (synth.voices[v].adsr->state != ENV_IDLE)
-            {
-                active_voices++;
-            }
-        }
+        // for (int v = 0; v < VOICES; v++)
+        // {
+        //     if (synth.voices[v].adsr->state != ENV_IDLE)
+        //     {
+        //         active_voices++;
+        //     }
+        // }
             
-        for (int i = 0; i < FRAMES; i++)
-        {
-            process_lfo(&synth);
-            double sample = process_voices(&synth);
-            sample = process_gain(synth, sample, active_voices);
-            sample = process_filter(&synth, sample);
-            buffer[i] = (short)(sample * 32767.0);
-            if (distortion_on)
-            {
-                buffer[i] = distortion(buffer[i], distortion_amount, overdrive);
-            }
-            process_arpeggiator(&synth, active_voices);
-        }
+        // for (int i = 0; i < FRAMES; i++)
+        // {
+        //     process_lfo(&synth);
+        //     double sample = process_voices(&synth);
+        //     sample = process_gain(synth, sample, active_voices);
+        //     sample = process_filter(&synth, sample);
+        //     buffer[i] = (short)(sample * 32767.0);
+        //     if (distortion_on)
+        //     {
+        //         buffer[i] = distortion(buffer[i], distortion_amount, overdrive);
+        //     }
+        //     process_arpeggiator(&synth, active_voices);
+        // }
 
-        active_voices = 0;
+        // active_voices = 0;
 #ifdef __WINDOWS__
-        while (!InterlockedCompareExchange(&buffer_free[current_buffer], 0, 1))
-            Sleep(1);
+        // while (!InterlockedCompareExchange(&buffer_free[current_buffer], 0, 1))
+        //     Sleep(1);
 
-        if (headers[current_buffer].dwFlags & WHDR_PREPARED)
-            waveOutUnprepareHeader(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
+        // if (headers[current_buffer].dwFlags & WHDR_PREPARED)
+        //     waveOutUnprepareHeader(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
 
-        for (uint16_t i = 0; i < FRAMES; i++)
-            buffers[current_buffer][i] =
-                (float)buffer[i] / 32768.0f;
+        // for (uint16_t i = 0; i < FRAMES; i++)
+        //     buffers[current_buffer][i] =
+        //         (float)buffer[i] / 32768.0f;
 
-        headers[current_buffer].lpData = (LPSTR)buffers[current_buffer];
-        headers[current_buffer].dwBufferLength = FRAMES * sizeof(float);
-        headers[current_buffer].dwFlags = 0;
+        // headers[current_buffer].lpData = (LPSTR)buffers[current_buffer];
+        // headers[current_buffer].dwBufferLength = FRAMES * sizeof(float);
+        // headers[current_buffer].dwFlags = 0;
 
-        waveOutPrepareHeader(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
-        waveOutWrite(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
+        // waveOutPrepareHeader(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
+        // waveOutWrite(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
         
-        current_buffer = (current_buffer + 1) % NUM_BUFFERS;
+        // current_buffer = (current_buffer + 1) % NUM_BUFFERS;
 #elif defined(__LINUX__)
         int err = snd_pcm_writei(handle, buffer, FRAMES);
         if (err == -EPIPE)
@@ -466,14 +513,14 @@ int main(int argc, char **argv)
             render_osc_waveforms(
                 &wave_a, &wave_b, &wave_c,
                 &ddm_a, &ddm_b, &ddm_c);
-            render_synth_params(&synth);
+            render_synth_params(synth_ptr);
             render_options(
-                &synth,
+                synth_ptr,
                 audio_filename,
                 &saving_preset, &loading_preset, 
                 &saving_audio_file, &recording);
             render_effects(
-                &synth,
+                synth_ptr,
                 &lfo_wave_ddm, &lfo_params_ddm,
                 &distortion_on, &overdrive,
                 &distortion_amount);
@@ -481,7 +528,7 @@ int main(int argc, char **argv)
             if (loading_preset)
             {
                 load_preset(
-                    &synth,
+                    synth_ptr,
                     &attack, &decay, &sustain, &release,
                     &wave_a, &wave_b, &wave_c,
                     &distortion_on, &overdrive, 
@@ -492,7 +539,7 @@ int main(int argc, char **argv)
             if (saving_preset)
             {
                 save_preset(
-                    synth,
+                    *synth_ptr,
                     attack, decay, sustain, release,
                     wave_a, wave_b, wave_c,
                     preset_filename, &saving_preset, 
@@ -503,31 +550,33 @@ int main(int argc, char **argv)
             render_white_keys();
             for (int v = 0; v < VOICES; v++)
             {
-                if (synth.voices[v].pressed && !is_black_key(synth.voices[v].note))
+                if (synth_ptr->voices[v].pressed && 
+                    !is_black_key(synth_ptr->voices[v].note))
                 {
-                    render_key(synth.voices[v].note, false);
+                    render_key(synth_ptr->voices[v].note, false);
                 }
             }
-            if (synth.arp && 
-                !is_black_key(synth.voices[synth.active_arp].note) &&
-                synth.voices[synth.active_arp].pressed)
+            if (synth_ptr->arp && 
+                !is_black_key(synth_ptr->voices[synth_ptr->active_arp].note) &&
+                synth_ptr->voices[synth_ptr->active_arp].pressed)
             {
-                render_key(synth.voices[synth.active_arp].note, true);
+                render_key(synth_ptr->voices[synth_ptr->active_arp].note, true);
             }
 
             render_black_keys();
             for (int v = 0; v < VOICES; v++)
             {
-                if (synth.voices[v].pressed && is_black_key(synth.voices[v].note))
+                if (synth_ptr->voices[v].pressed && 
+                    is_black_key(synth_ptr->voices[v].note))
                 {
-                    render_key(synth.voices[v].note, false);
+                    render_key(synth_ptr->voices[v].note, false);
                 }
             }
-            if (synth.arp && 
-                is_black_key(synth.voices[synth.active_arp].note) &&
-                synth.voices[synth.active_arp].pressed)
+            if (synth_ptr->arp && 
+                is_black_key(synth_ptr->voices[synth_ptr->active_arp].note) &&
+                synth_ptr->voices[synth_ptr->active_arp].pressed)
             {
-                render_key(synth.voices[synth.active_arp].note, true);
+                render_key(synth_ptr->voices[synth_ptr->active_arp].note, true);
             }
                 
     
@@ -536,19 +585,26 @@ int main(int argc, char **argv)
 
     CloseWindow();
 
-#ifdef __LINUX__
-    if (midi_in)
-    {
-        snd_rawmidi_close(midi_in);
-    }
-#elif defined(__WINDOWS__)
-    waveOutClose(wave_out);
-    timeEndPeriod(1);
-
+#ifdef __WINDOWS__
+    /* close midi interface */
     if (midi_valid)
     {
         midiInStop(midi_in);
         midiInClose(midi_in);
+    }
+
+    /* stop audio thread*/
+    InterlockedExchange(&ctx.should_stop, 1);
+    WaitForSingleObject(audio_thread, INFINITE);
+    CloseHandle(audio_thread);
+    DeleteCriticalSection(&ctx.lock);
+
+    /* close sound interface */
+    waveOutClose(wave_out);
+#elif defined(__LINUX__)
+    if (midi_in)
+    {
+        snd_rawmidi_close(midi_in);
     }
 #endif
     /* If we quit the application during recording, change WAV header and close WAV file */

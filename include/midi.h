@@ -2,6 +2,7 @@
 #define MIDI_H
 
 #include "synth.h"
+#include <stdint.h>
 
 #ifdef __WINDOWS__
 
