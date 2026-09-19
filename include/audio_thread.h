@@ -12,15 +12,16 @@
 #include "synth.h"
 #include "midi.h"
 
+/* Audio thread context structure */
 typedef struct audio_thread_ctx_s
 {
     synth_t synth;
 
-    /* midi */
+    /* MIDI */
     int midi_valid;
     midi_queue_t midi_queue;
 
-    /* buffers */
+    /* Audio buffers */
     short display_buffer[FRAMES];
     float buffers[NUM_BUFFERS][FRAMES];
     WAVEHDR headers[NUM_BUFFERS];
@@ -28,21 +29,29 @@ typedef struct audio_thread_ctx_s
     int current_buffer;
     HWAVEOUT wave_out;
 
-    /* effects */
+    /* Audio effects variables */
     int distortion_on;
     float distortion_amount;
     float overdrive;
 
-    /* state */
+    /* Synthesizer and program state */
     int active_voices;
     volatile LONG should_stop;
 
-    /* sync with main thread */
+    /* Critical section */
     CRITICAL_SECTION lock;
 } audio_thread_ctx_t;
 
+/* Callback function for the sound card */
+void CALLBACK waveOutProc(
+    HWAVEOUT wave_out,
+    UINT msg,
+    DWORD_PTR instance,
+    DWORD_PTR param1,
+    DWORD_PTR param2);
+
+/* Audio thread function */
 DWORD WINAPI audio_thread_proc(LPVOID param);
 
-#endif
-
-#endif
+#endif /* __WINDOWS__ */
+#endif /* __AUDIO_THREAD_H__ */

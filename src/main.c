@@ -27,8 +27,6 @@ typedef struct tagBITMAPINFOHEADER {
 #include <ks.h>
 #include <ksmedia.h>
 
-#include "audio_thread.h"
-
 #elif defined(__LINUX__)
 
 #include <unistd.h>
@@ -40,6 +38,7 @@ typedef struct tagBITMAPINFOHEADER {
 #include <float.h>
 #include <stdint.h>
 
+#include "audio_thread.h"
 #include "xml.h"
 #include "defs.h"
 #include "interface.h"
@@ -49,6 +48,10 @@ typedef struct tagBITMAPINFOHEADER {
 #include "effects.h"
 #include "midi.h"
 
+#if !defined(__WINDOWS__) && !defined(__LINUX__)
+    #error "Unsupported OS."
+#endif
+
 /* Prints the usage of the CLI arguments into the error output */
 static void usage()
 {
@@ -57,34 +60,12 @@ static void usage()
     fprintf(stderr, "to see this helper again, use synth -h or synth -help\n");
 }
 
-#if !defined(__WINDOWS__) && !defined(__LINUX__)
-    #error "Unsupported OS."
-#endif
-
-#ifdef __WINDOWS__
-
-void CALLBACK waveOutProc(
-    HWAVEOUT wave_out,
-    UINT msg,
-    DWORD_PTR instance,
-    DWORD_PTR param1,
-    DWORD_PTR param2)
-{
-    if (msg == WOM_DONE)
-    {
-        audio_thread_ctx_t *ctx = (audio_thread_ctx_t *)instance;
-        WAVEHDR *hdr = (WAVEHDR *)param1;
-        int idx = (int)((float *)hdr->lpData - &ctx->buffers[0][0]) / FRAMES;
-        InterlockedExchange(&ctx->buffer_free[idx], 1);
-    }
-}
-#endif 
-
+/* MAIN LOOP */
 int main(int argc, char **argv)
 {
+    /* Command line arguments parsing */
     char midi_device[256];
     int midi_input = 0;
-
     if (argc > 1)
     {
         if (strcmp(argv[1], "-midi") == 0 && argc >= 3)
@@ -106,20 +87,27 @@ int main(int argc, char **argv)
     }
     
     int octave = DEFAULT_OCTAVE;
+    
+    /* SYNTHESIZER COMPONENTS */
 
+    /* Waveforms*/
     int wave_a = SINE_WAVE, wave_b = SINE_WAVE, wave_c = SINE_WAVE;
     int osc_lfo = SINE_WAVE;
-
+    
+    /* ADSR envelope parameters */
     float attack = 0.2;
     float decay = 0.3;
     float sustain = 0.7;
     float release = 0.2;
 
+    /* Filter ADSR envelope parameters */
     float filter_attack = 0.0;
     float filter_decay = 0.3;
     float filter_sustain = 0.0;
     float filter_release = 0.2;
 
+
+    /* Filter ADSR envelope */
     adsr_t filter_adsr =
         {
             .attack = &filter_attack,
@@ -127,6 +115,7 @@ int main(int argc, char **argv)
             .sustain = &filter_sustain,
             .release = &filter_release};
 
+    /* Low-pass filter */
     lp_filter_t filter =
         {
             .cutoff = 0.5,
@@ -135,17 +124,20 @@ int main(int argc, char **argv)
             .adsr = &filter_adsr,
             .env = false};
 
+    /* Low Frequency Oscillator oscillator */
     osc_t lfo_osc =
         {
             .freq = 0.5,
             .phase = 0.0,
             .wave = &osc_lfo};
 
+    /* Low Frequency Oscillator */
     lfo_t lfo = 
         {
             .osc = &lfo_osc,
             .mod_param = LFO_OFF};
     
+    /* Polyphonic Synthesizer */
     synth_t synth =
         {
             .voices = malloc(sizeof(voice_t) * VOICES),
@@ -164,7 +156,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* Create the synth voices */
+    /* Create the synthesizer voices */
     for (int i = 0; i < VOICES; i++)
     {
         synth.voices[i].adsr = malloc(sizeof(adsr_t));
@@ -180,6 +172,7 @@ int main(int argc, char **argv)
             return 1;
         }
 
+        /* Synthesizer ADSR envelope */
         synth.voices[i].adsr->attack = &attack;
         synth.voices[i].adsr->decay = &decay;
         synth.voices[i].adsr->sustain = &sustain;
@@ -191,6 +184,7 @@ int main(int argc, char **argv)
         synth.voices[i].velocity_amp = 0.0;
         synth.voices[i].pressed = 0;
 
+        /* Allocating the oscillators */
         synth.voices[i].oscillators = malloc(sizeof(osc_t) * 3);
         if (synth.voices[i].oscillators == NULL)
         {
@@ -203,17 +197,20 @@ int main(int argc, char **argv)
             synth.voices[i].oscillators[j].freq = 0.0;
             synth.voices[i].oscillators[j].phase = 0.0;
         }
+
         synth.voices[i].oscillators[0].wave = &wave_a;
         synth.voices[i].oscillators[1].wave = &wave_b;
         synth.voices[i].oscillators[2].wave = &wave_c;
     }
 
+    /* Accessing the synthesizer data through a pointer for thread concurrency */
     synth_t *synth_ptr = &synth;
 
+    /* Sound and waveform display buffer */
     short buffer[FRAMES];
     memset(buffer, 0, sizeof(short) * FRAMES);
 #ifdef __WINDOWS__
-
+    /* Print the devices and get the current one */
     UINT sound_devices = waveOutGetNumDevs();
     for (UINT i = 0; i < sound_devices; i++)
     {
@@ -222,6 +219,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "device %u: %s\n", i, caps.szPname);
     }
 
+    /* Initialize the audio format */
     WAVEFORMATEXTENSIBLE wfx = {0};
     wfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
     wfx.Format.nChannels = MONO;
@@ -235,7 +233,7 @@ int main(int argc, char **argv)
     wfx.dwChannelMask = SPEAKER_FRONT_CENTER;
     wfx.SubFormat = KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
 
-    /* init the audio thread context */
+    /* Initialize the audio thread context */
     audio_thread_ctx_t ctx = {0};
     ctx.synth = synth;
     ctx.buffer_free[0] =
@@ -244,7 +242,7 @@ int main(int argc, char **argv)
         ctx.buffer_free[3] = 1;
     InitializeCriticalSection(&ctx.lock);
 
-    /* open the wave out to the sound card */
+    /* Open the sound card */
     HWAVEOUT wave_out;
     MMRESULT sound_res = waveOutOpen(
         &wave_out,
@@ -262,16 +260,16 @@ int main(int argc, char **argv)
 
     ctx.wave_out = wave_out;
 
-    /* handle the midi interface initialization */
+    /* Handle the MIDI interface initialization */
     HMIDIIN midi_in;
     uint8_t midi_valid = 1;
     LONG midi_id;
     UINT midi_devices;
 
-    /* if the user specified midi input */
+    /* If the user specified MIDI input */
     if (midi_input)
     {
-        /* get the number of midi devices */
+        /* Get the number of MIDI devices */
         midi_devices = midiInGetNumDevs();
         if (midi_devices == 0)
         {
@@ -279,7 +277,7 @@ int main(int argc, char **argv)
             midi_valid = 0;
         }
 
-        /* check if the given port 
+        /* Check if the given port 
         is a valid integer */
         char *endptr;
         midi_id = 
@@ -290,10 +288,10 @@ int main(int argc, char **argv)
             midi_valid = 0;
     }
 
-    /* if the informations from the user are correct */
+    /* If the informations from the user are correct */
     if (midi_valid && midi_input)
     {
-        /* check the available midi devices */
+        /* Check the available MIDI devices */
         for (UINT i = 0; i < midi_devices; i++)
         {
             MIDIINCAPS caps;
@@ -301,10 +299,10 @@ int main(int argc, char **argv)
             printf("midi_device: [%u] %s\n", i, caps.szPname);
         }
 
-        /* initialize the midi queue */
+        /* Initialize the MIDI queue */
         midi_queue_init(&ctx.midi_queue);
 
-        /* open the midi interface */
+        /* Open the MIDI interface */
         MMRESULT midi_res = midiInOpen(
             &midi_in, midi_id, 
             (DWORD_PTR)MidiInProc, 
@@ -317,6 +315,7 @@ int main(int argc, char **argv)
             return 1;
         }
 
+        /* Start the MIDI communication */
         midiInStart(midi_in);
         fprintf(stderr, "midi started on port %ld\n", midi_id);
     }
@@ -327,7 +326,7 @@ int main(int argc, char **argv)
 
     ctx.midi_valid = midi_valid;
 
-    /* create the audio thread */
+    /* Create and run the audio thread */
     HANDLE audio_thread = CreateThread(
         NULL, 0,
         audio_thread_proc,
@@ -343,6 +342,7 @@ int main(int argc, char **argv)
     synth_ptr = &ctx.synth;
 
 #elif defined(__LINUX__)
+    /* Open the sound card */
     snd_pcm_t *handle = NULL;
     if (snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0)
     {
@@ -350,21 +350,23 @@ int main(int argc, char **argv)
         goto cleanup_synth;
     }
 
+    /* Set the parameters of the sound card */
     int params_err = snd_pcm_set_params(
         handle,
         SND_PCM_FORMAT_S16_LE,
         SND_PCM_ACCESS_RW_INTERLEAVED,
         MONO, RATE, 1, LATENCY);
-
     if (params_err < 0)
     {
         fprintf(stderr, "error while setting sound card parameters: %s\n", snd_strerror(params_err));
         goto cleanup_alsa;
     }
 
+    /* Write empty buffer to avoid glitchy start */
     snd_pcm_prepare(handle);
     snd_pcm_writei(handle, buffer, FRAMES);
 
+    /* Open the MIDI interface communication */
     snd_rawmidi_t *midi_in;
     if (midi_input)
     {
@@ -375,6 +377,7 @@ int main(int argc, char **argv)
         }
     }
 #endif
+    /* WAVE recording variables */
     char audio_filename[1024] = "\0";
     FILE *fwav = NULL;
     wav_header_t header;
@@ -391,14 +394,17 @@ int main(int argc, char **argv)
 
     char preset_filename[1024] = "\0";
 
+    /* Initialize the raygui windows */
     SetTraceLogLevel(LOG_WARNING);
     InitWindow(WIDTH, HEIGHT, "ALSA & raygui synthesizer");
     Font annotation = LoadFont("Regular.ttf");
     GuiSetFont(annotation);
     GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * 0.5);
 
+    /* Main loop */
     while (!WindowShouldClose())
     {
+        /* Handle keyboard input from the user */
         if (!saving_preset && !saving_audio_file)
         {
             handle_input(&synth, &octave, 
@@ -408,63 +414,43 @@ int main(int argc, char **argv)
         }
 
 #ifdef __WINDOWS__
-        // if (midi_valid)
-        //     poll_midi_queue(&midi_queue, &synth);
-
+        /* Update the context of the audio thread */
         ctx.distortion_on = distortion_on;
         ctx.distortion_amount = distortion_amount;
         ctx.overdrive = overdrive;
 
+        /* Get the sound data to display in the waveform visualizer */
         EnterCriticalSection(&ctx.lock);
         memcpy(buffer, ctx.display_buffer, sizeof(buffer));
         LeaveCriticalSection(&ctx.lock);
 #elif defined(__LINUX__)
+        /* Get the MIDI input from the user */
         if (midi_input)
             get_midi(midi_in, &synth, &attack, &decay, &sustain, &release);
-#endif
-        // for (int v = 0; v < VOICES; v++)
-        // {
-        //     if (synth.voices[v].adsr->state != ENV_IDLE)
-        //     {
-        //         active_voices++;
-        //     }
-        // }
-            
-        // for (int i = 0; i < FRAMES; i++)
-        // {
-        //     process_lfo(&synth);
-        //     double sample = process_voices(&synth);
-        //     sample = process_gain(synth, sample, active_voices);
-        //     sample = process_filter(&synth, sample);
-        //     buffer[i] = (short)(sample * 32767.0);
-        //     if (distortion_on)
-        //     {
-        //         buffer[i] = distortion(buffer[i], distortion_amount, overdrive);
-        //     }
-        //     process_arpeggiator(&synth, active_voices);
-        // }
-
-        // active_voices = 0;
-#ifdef __WINDOWS__
-        // while (!InterlockedCompareExchange(&buffer_free[current_buffer], 0, 1))
-        //     Sleep(1);
-
-        // if (headers[current_buffer].dwFlags & WHDR_PREPARED)
-        //     waveOutUnprepareHeader(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
-
-        // for (uint16_t i = 0; i < FRAMES; i++)
-        //     buffers[current_buffer][i] =
-        //         (float)buffer[i] / 32768.0f;
-
-        // headers[current_buffer].lpData = (LPSTR)buffers[current_buffer];
-        // headers[current_buffer].dwBufferLength = FRAMES * sizeof(float);
-        // headers[current_buffer].dwFlags = 0;
-
-        // waveOutPrepareHeader(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
-        // waveOutWrite(wave_out, &headers[current_buffer], sizeof(WAVEHDR));
         
-        // current_buffer = (current_buffer + 1) % NUM_BUFFERS;
-#elif defined(__LINUX__)
+        /* Count the number of active voice */
+        for (int v = 0; v < VOICES; v++)
+            if (synth.voices[v].adsr->state != ENV_IDLE)
+                active_voices++;
+        
+        /* Process the synthesizer frame */
+        for (int i = 0; i < FRAMES; i++)
+        {
+            process_lfo(&synth);
+            double sample = process_voices(&synth);
+            sample = process_gain(synth, sample, active_voices);
+            sample = process_filter(&synth, sample);
+            buffer[i] = (short)(sample * 32767.0);
+            if (distortion_on)
+            {
+                buffer[i] = distortion(buffer[i], distortion_amount, overdrive);
+            }
+            process_arpeggiator(&synth, active_voices);
+        }
+
+        active_voices = 0;
+
+        /* Write the sound buffer to the sound card */
         int err = snd_pcm_writei(handle, buffer, FRAMES);
         if (err == -EPIPE)
         {
@@ -477,11 +463,13 @@ int main(int argc, char **argv)
             snd_pcm_prepare(handle);
         }
 #endif 
+        /* Write the buffer to the recording WAVE file */
         if (fwav != NULL && recording == true)
         {
             fwrite(buffer, 2, FRAMES, fwav);
             count++;
         }
+        /* Start recording if the WAVE file is not initialized*/
         else if (fwav == NULL && recording == true)
         {
             char audio_full_filename[1024] = "audio/";
@@ -491,6 +479,7 @@ int main(int argc, char **argv)
             init_wav_file(audio_full_filename, &fwav, &header);
             audio_filename[0] = '\0';
         }
+        /* Stop recording and close the file if the recording has stopped */
         else if (fwav != NULL && recording == false)
         {
             header.sub2_size = FRAMES * count * (unsigned int)header.num_channels * (unsigned int)header.bits_per_sample / 8;
@@ -502,29 +491,38 @@ int main(int argc, char **argv)
             count = 0;
         }
 
+        /* Graphical User Interface rendering */
         BeginDrawing();
-
             ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
-            GuiLabel((Rectangle){WIDTH / 2 - 115, 5, 230, 20}, "ALSA & raygui Synthesizer");
             
+            /* Title */
+            GuiLabel((Rectangle){WIDTH / 2 - 115, 5, 230, 20}, "ALSA & raygui Synthesizer");
+            /* Waveform visualizer */
             render_waveform(buffer);
+            /* ADSR envelope GUI */
             render_adsr(&attack, &decay, &sustain, &release);
+            /* Filter ADSR envelope GUI */
             render_filter_adsr(&synth);
+            /* Oscillators waveforms selection GUI */
             render_osc_waveforms(
                 &wave_a, &wave_b, &wave_c,
                 &ddm_a, &ddm_b, &ddm_c);
+            /* Miscelannous synthesizer parameters GUI */
             render_synth_params(synth_ptr);
+            /* Miscelannous options GUI (presets loading/saving & recording) */
             render_options(
                 synth_ptr,
                 audio_filename,
                 &saving_preset, &loading_preset, 
                 &saving_audio_file, &recording);
+            /* Effects parameters GUI (LFO & distortion) */
             render_effects(
                 synth_ptr,
                 &lfo_wave_ddm, &lfo_params_ddm,
                 &distortion_on, &overdrive,
                 &distortion_amount);
-                
+            
+            /* Loading preset, shows file dialog */
             if (loading_preset)
             {
                 load_preset(
@@ -535,7 +533,8 @@ int main(int argc, char **argv)
                     &distortion_amount, 
                     &loading_preset);
             }
-                
+            
+            /* Saving preset, popup window for file name */
             if (saving_preset)
             {
                 save_preset(
@@ -547,6 +546,9 @@ int main(int argc, char **argv)
                     distortion_amount);
             }
 
+            /* Keyboard visualizer rendering */
+            
+            /* White keys */
             render_white_keys();
             for (int v = 0; v < VOICES; v++)
             {
@@ -563,6 +565,7 @@ int main(int argc, char **argv)
                 render_key(synth_ptr->voices[synth_ptr->active_arp].note, true);
             }
 
+            /* Black keys */
             render_black_keys();
             for (int v = 0; v < VOICES; v++)
             {
@@ -578,8 +581,7 @@ int main(int argc, char **argv)
             {
                 render_key(synth_ptr->voices[synth_ptr->active_arp].note, true);
             }
-                
-    
+            
         EndDrawing();
     }
 

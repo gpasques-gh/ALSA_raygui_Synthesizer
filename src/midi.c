@@ -5,16 +5,21 @@
 #include "synth.h"
 #include "midi.h"
 
+/* Apply the MIDI event to the synthesizer */
+/* MIDI event either come directly from the main loop in Linux */
+/* Or from the MIDIIN thread and MIDI queue polling in Windows */
 static void __apply_midi_event(
     synth_t *synth, 
     uint8_t status,
     uint8_t data1,
     uint8_t data2)
 {
+    /* If the MIDI message is a NOTE ON */
     if ((status & PRESSED) == NOTE_ON && data2 > 0)
     {
         int pressed_voices = 0;
 
+        /* Count the currently pressed voices */
         for (int v = 0; v < VOICES; v++)
         {   
             if (synth->voices[v].pressed)
@@ -23,32 +28,37 @@ static void __apply_midi_event(
                 synth->voices[v].adsr->state = ENV_IDLE;
         }
 
+        /* Get the first free voice */
         voice_t *free_voice = get_free_voice(synth);
         if (free_voice == NULL) return;
 
+        /* Press the voice and activate it */
         free_voice->pressed = 1;
         change_freq(free_voice, data1, data2, synth->detune);
         if (pressed_voices == 0 && synth->filter->env)
             synth->filter->adsr->state = ENV_ATTACK;
             
-
+        /* If the arpeggiator is on */
         if (synth->arp)
         {
+            /* Sort the synthesizer voices by MIDI note */
             sort_synth_voices(synth);
             if (pressed_voices == 0)
-            {
                 synth->active_arp_float = 1.0;
-            }
         }
     }
+    /* If the MIDI message is a NOTE OFF */
     else if ((status & PRESSED) == NOTE_OFF ||
                 ((status & PRESSED) == NOTE_ON && data2 == 0))
     {
+        /* Count the currently pressed voices */
         int pressed_voices = 0;
         for (int v = 0; v < VOICES; v++)
             if (synth->voices[v].pressed)
                 pressed_voices++;
         
+        /* Loop through the voices to deactivate 
+        the one of which MIDI note has been released */
         for (int v = 0; v < VOICES; v++)
         {
             if (synth->voices[v].note == data1 && 
@@ -72,8 +82,10 @@ static void __apply_midi_event(
             }
         }
 
+        /* If the arpeggiator is on */
         if (synth->arp)
         {
+            /* Sort the voices by MIDI note */
             sort_synth_voices(synth);
             if (pressed_voices == 2)
             {
@@ -89,16 +101,14 @@ static void __apply_midi_event(
 #include <windows.h>
 #include <mmeapi.h>
 
-static midi_queue_t g_midi_queue;
-
-static volatile float latency_check;
-
+/* Initialize a MIDI queue */
 void midi_queue_init(midi_queue_t *q)
 {
     q->head = 0;
     q->tail = 0;
 }
 
+/* Callback function for the HMIDIIN */
 void CALLBACK MidiInProc(
     HMIDIIN midi_in, 
     UINT msg, 
@@ -109,35 +119,47 @@ void CALLBACK MidiInProc(
     if (msg != MIM_DATA)
         return;
     
+    /* Get the MIDI queue */
     midi_queue_t *q = (midi_queue_t *)instance;
     
+    /* Get the MIDI message bytes */
     BYTE status = param1 & 0xFF;
     BYTE data1 = (param1 >> 8) & 0xFF;
     BYTE data2 = (param1 >> 16) & 0xFF;
 
+    /* Iterate through the MIDI queue */
     LONG head = q->head;
     LONG next = (head + 1) & (MIDI_QUEUE_SIZE - 1);
 
+    /* If the queue is empty */
     if (next == q->tail)
         return;
 
+    /* Initialize the MIDI event */
     q->events[head].status = status;
     q->events[head].data1 = data1;
     q->events[head].data2 = data2;
 
+    /* Synchronize the data with the main thread */
     MemoryBarrier();
     InterlockedExchange(&q->head, next);
 }
 
+/* Poll the MIDI queue for new MIDI events 
+and apply them to the synthesizer */
+/* This function is called from the audio thread */
 void poll_midi_queue(midi_queue_t *q, synth_t *synth)
 {
     LONG tail = q->tail;
     while (tail != q->head)
     {
+        /* Apply the new MIDI events */
         midi_event_t ev = q->events[tail];
         __apply_midi_event(synth, ev.status, ev.data1, ev.data2);
         tail = (tail + 1) & (MIDI_QUEUE_SIZE - 1);
     }
+
+    /* Synchronize the data with the main thread */
     InterlockedExchange(&q->tail, tail);
 }
 #elif defined(__LINUX__)

@@ -2,6 +2,8 @@
 #include "libxml/parser.h"
 #include "libxml/tree.h"
 
+/* Dirty and ugly trick to have both raylib 
+and Windows API working together */
 #define INITGUID
 #define WIN32_LEAN_AND_MEAN
 #define NOGDI
@@ -201,6 +203,7 @@ int load_preset(
     char filename[1024];
 
 #ifdef __WINDOWS__
+    /* Opening Windows file dialog */
     HRESULT hr = CoInitializeEx(
         NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     if (!SUCCEEDED(hr))
@@ -210,10 +213,10 @@ int load_preset(
         return 1;
     }
     
+    /* Opening the file dialog */
     IFileOpenDialog *file_dialog;
     hr = CoCreateInstance(&CLSID_FileOpenDialog, NULL, CLSCTX_ALL, 
         &IID_IFileOpenDialog, (void **)(&file_dialog));
-
     if (!SUCCEEDED(hr))
     {
         CoUninitialize();
@@ -222,8 +225,8 @@ int load_preset(
         return 1;
     }
 
+    /* Showing the file dialog to the screen */
     hr = file_dialog->lpVtbl->Show(file_dialog, NULL);
-
     if (!SUCCEEDED(hr))
     {
         file_dialog->lpVtbl->Release(file_dialog);
@@ -233,9 +236,10 @@ int load_preset(
         return 1;
     }
 
+    /* Getting the item selected by 
+    the user from the file dialog */
     IShellItem *item;
     hr = file_dialog->lpVtbl->GetResult(file_dialog, &item);
-
     if (!SUCCEEDED(hr))
     {
         file_dialog->lpVtbl->Release(file_dialog);
@@ -245,10 +249,10 @@ int load_preset(
         return 1;
     }
 
+    /* Getting the file path from the selected item */
     PWSTR file_path;
     hr = item->lpVtbl->GetDisplayName(
         item, SIGDN_FILESYSPATH, &file_path);
-
     if (!SUCCEEDED(hr))
     {
         item->lpVtbl->Release(item);
@@ -259,21 +263,27 @@ int load_preset(
         return 1;
     }
 
+    /* Converting the PWSTR file path 
+    to the char file path*/
     WideCharToMultiByte(
         CP_UTF8, 0, 
         file_path, -1, 
         filename, sizeof(filename), 
         NULL, NULL);
+
+    /* Free the Windows file dialog window */
     CoTaskMemFree(file_path);
     item->lpVtbl->Release(item);
     file_dialog->lpVtbl->Release(file_dialog);
     CoUninitialize();
 #elif defined(__LINUX__)
+    /* Run Zenity for a simple file dialog solution */
     const char *home = getenv("HOME");
     char zenity_command[1024] = "zenity --file-selection --filename '";
     strcat(zenity_command, home);
     strcat(zenity_command, "/ALSA_raygui_Synthesizer/presets/' --file-filter '*.xml'");
 
+    /* Get the file path from Zenity */
     FILE *f = popen(zenity_command, "r");
     fgets(filename, 1024, f);
     filename[strcspn(filename, "\n")] = '\0';

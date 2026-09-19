@@ -12,6 +12,7 @@
 
 #define MIDI_QUEUE_SIZE 256
 
+/* MIDI event structure */
 typedef struct
 {
     uint8_t status;
@@ -19,6 +20,7 @@ typedef struct
     uint8_t data2;
 } midi_event_t;
 
+/* MIDI queue data structure */
 typedef struct 
 {
     midi_event_t events[MIDI_QUEUE_SIZE];
@@ -26,15 +28,22 @@ typedef struct
     volatile LONG tail;
 } midi_queue_t;
 
+/* Initialize a MIDI queue */
 void midi_queue_init(midi_queue_t *q);
+
+/* Poll the MIDI queue for new MIDI events 
+and apply them to the synthesizer */
+/* This function is called from the audio thread */
 void poll_midi_queue(midi_queue_t *q, synth_t *synth);
 
+/* Callback function for the HMIDIIN */
 void CALLBACK MidiInProc(
     HMIDIIN midi_in, 
     UINT msg, 
     DWORD_PTR instance, 
     DWORD_PTR param1, 
     DWORD_PTR param2);
+
 #elif defined(__LINUX__)
 #include <alsa/asoundlib.h>
 /*
