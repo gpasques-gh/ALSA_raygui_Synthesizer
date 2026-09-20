@@ -142,19 +142,17 @@ DWORD WINAPI audio_thread_proc(LPVOID param)
 
 #elif defined(__LINUX__)
 
+#include <stdatomic.h>
+
 /* Audio thread function for Linux */
 void *audio_thread_proc(void *param)
 {
 	/* Thread is asynchronous to avoir ALSA I/O errors */
-	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 	audio_thread_ctx_t *ctx = (audio_thread_ctx_t *)param;
-	
-	/* Thread main loop */
-	while (1)
+	 
+	while (!atomic_load(&ctx->should_stop))
 	{
-		/* Thread breaking point */
-		pthread_testcancel();
-
 		/* Get MIDI events */
 		if (ctx->midi_valid)
 			get_midi(ctx->midi_in, &ctx->synth, NULL, NULL, NULL, NULL);
@@ -184,6 +182,7 @@ void *audio_thread_proc(void *param)
 			snd_pcm_prepare(ctx->audio_out);
 		}
 
+		/* Start the recording process */
 		__recording_handling(ctx, ctx->buffer);
 	}
 

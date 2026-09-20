@@ -35,7 +35,7 @@ ifeq ($(DETECTED_OS),Windows)
     MKDIR = mkdir
 else ifeq ($(DETECTED_OS),Linux)
     CFLAGS += -I/usr/include/libxml2 -D__LINUX__
-    LDFLAGS += -lasound -lm -lraylib -lxml2 -lX11
+    LDFLAGS += -lasound -lm -lraylib -lxml2 -lX11 -lpthread
     RM = rm -rf
     MKDIR = mkdir -p
 else ifeq ($(DETECTED_OS),Darwin)

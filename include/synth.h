@@ -6,11 +6,11 @@
 /* ADSR envelope states */
 typedef enum
 {
-    ENV_IDLE,
-    ENV_ATTACK,
-    ENV_DECAY,
-    ENV_SUSTAIN,
-    ENV_RELEASE
+	ENV_IDLE,
+	ENV_ATTACK,
+	ENV_DECAY,
+	ENV_SUSTAIN,
+	ENV_RELEASE
 } env_state_t;
 
 /*
@@ -21,9 +21,9 @@ typedef enum
  */
 typedef struct
 {
-    float *attack, *decay, *sustain, *release;
-    float output;
-    env_state_t state;
+	float *attack, *decay, *sustain, *release;
+	float output;
+	env_state_t state;
 } adsr_t;
 
 /*
@@ -32,22 +32,22 @@ typedef struct
  */
 typedef struct
 {
-    float freq, phase;
-    int *wave;
+	float freq, phase;
+	int *wave;
 } osc_t;
 
 typedef struct 
 {
-    osc_t *osc;
-    int mod_param;
+	osc_t *osc;
+	int mod_param;
 } lfo_t;
 
 /* Low-pass filter structure */
 typedef struct
 {
-    float prev_input, prev_output, cutoff, env_cutoff, lfo_cutoff;
-    adsr_t *adsr;
-    bool env;
+	float prev_input, prev_output, cutoff, env_cutoff, lfo_cutoff;
+	adsr_t *adsr;
+	bool env;
 } lp_filter_t;
 
 /*
@@ -57,11 +57,11 @@ typedef struct
  */
 typedef struct
 {
-    osc_t *oscillators;
-    adsr_t *adsr;
-    int pressed;
-    int note;
-    double velocity_amp;
+	osc_t *oscillators;
+	adsr_t *adsr;
+	int pressed;
+	int note;
+	double velocity_amp;
 } voice_t;
 
 /*
@@ -76,17 +76,17 @@ typedef struct
  */
 typedef struct
 {
-    voice_t *voices;
-    lp_filter_t *filter;
-    lfo_t *lfo;
-    float detune;
-    float lfo_detune;
-    float amp;
-    float lfo_amp;
-    int active_arp;
-    float bpm;
-    float active_arp_float;
-    bool arp;
+	voice_t *voices;
+	lp_filter_t *filter;
+	lfo_t *lfo;
+	float detune;
+	float lfo_detune;
+	float amp;
+	float lfo_amp;
+	int active_arp;
+	float bpm;
+	float active_arp_float;
+	bool arp;
 } synth_t;
 
 /*
@@ -115,7 +115,7 @@ void process_arpeggiator(synth_t *synth, int active_voices);
  * Multiplied by the synth_t detune coefficient
  */
 void change_freq(voice_t *voice, int note,
-                 int velocity, double detune);
+				 int velocity, double detune);
 
 /* Apply the detune change to the voices oscillators */
 void apply_detune_change(synth_t *synth);
@@ -128,7 +128,7 @@ const char *get_wave_name(int wave);
  * Returns the processed sample
  */
 double lp_process(lp_filter_t *filter, double input,
-                float cutoff);
+				float cutoff);
 
 /*
  * Returns the first free voice from the synth_t

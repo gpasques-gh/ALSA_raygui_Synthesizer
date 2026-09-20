@@ -15,17 +15,17 @@
 /* MIDI event structure */
 typedef struct
 {
-    uint8_t status;
-    uint8_t data1;
-    uint8_t data2;
+	uint8_t status;
+	uint8_t data1;
+	uint8_t data2;
 } midi_event_t;
 
 /* MIDI queue data structure */
 typedef struct 
 {
-    midi_event_t events[MIDI_QUEUE_SIZE];
-    volatile LONG head;
-    volatile LONG tail;
+	midi_event_t events[MIDI_QUEUE_SIZE];
+	volatile LONG head;
+	volatile LONG tail;
 } midi_queue_t;
 
 /* Initialize a MIDI queue */
@@ -38,11 +38,11 @@ void poll_midi_queue(midi_queue_t *q, synth_t *synth);
 
 /* Callback function for the HMIDIIN */
 void CALLBACK MidiInProc(
-    HMIDIIN midi_in, 
-    UINT msg, 
-    DWORD_PTR instance, 
-    DWORD_PTR param1, 
-    DWORD_PTR param2);
+	HMIDIIN midi_in, 
+	UINT msg, 
+	DWORD_PTR instance, 
+	DWORD_PTR param1, 
+	DWORD_PTR param2);
 
 #elif defined(__LINUX__)
 #include <alsa/asoundlib.h>
@@ -54,7 +54,7 @@ void CALLBACK MidiInProc(
  * Change the cutoff, detune and amplification when the assigned knobs are being triggered
  */
 int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
-             float *attack, float *decay, float *sustain, float *release);
+			 float *attack, float *decay, float *sustain, float *release);
 
 #endif /* OS */
 #endif /* MIDI_H */
