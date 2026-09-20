@@ -342,6 +342,10 @@ int main(int argc, char **argv)
     synth_ptr = &ctx.synth;
 
 #elif defined(__LINUX__)
+    /* Initialize the audio thread context */
+    audio_thread_ctx_t ctx = {0};
+    ctx.synth = synth;
+
     /* Open the sound card */
     snd_pcm_t *handle = NULL;
     if (snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0)
@@ -350,9 +354,11 @@ int main(int argc, char **argv)
         goto cleanup_synth;
     }
 
+    ctx.audio_out = handle;
+
     /* Set the parameters of the sound card */
     int params_err = snd_pcm_set_params(
-        handle,
+        ctx.audio_out,
         SND_PCM_FORMAT_S16_LE,
         SND_PCM_ACCESS_RW_INTERLEAVED,
         MONO, RATE, 1, LATENCY);
@@ -361,10 +367,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "error while setting sound card parameters: %s\n", snd_strerror(params_err));
         goto cleanup_alsa;
     }
-
-    /* Write empty buffer to avoid glitchy start */
-    snd_pcm_prepare(handle);
-    snd_pcm_writei(handle, buffer, FRAMES);
 
     /* Open the MIDI interface communication */
     snd_rawmidi_t *midi_in;
@@ -376,12 +378,21 @@ int main(int argc, char **argv)
             goto cleanup_alsa;
         }
     }
+
+    ctx.midi_valid = midi_input;
+    ctx.midi_in = midi_in;
+    synth_ptr = &ctx.synth;
+
+    /* Create and run the audio thread */
+    pthread_t audio_thread_id;
+    pthread_create(
+        &audio_thread_id, 
+        NULL, 
+        &audio_thread_proc, 
+        &ctx);
 #endif
     /* WAVE recording variables */
     char audio_filename[1024] = "\0";
-    FILE *fwav = NULL;
-    wav_header_t header;
-    unsigned int count = 0;
     bool recording = false;
 
     /* Oscillators dropdown menus booleans */
@@ -407,90 +418,44 @@ int main(int argc, char **argv)
         /* Handle keyboard input from the user */
         if (!saving_preset && !saving_audio_file)
         {
-            handle_input(&synth, &octave, 
+            handle_input(synth_ptr, &octave, 
 				&attack, &decay, &sustain, &release,
 				&wave_a, &wave_b, &wave_c);
-            handle_release(&synth, octave);
+            handle_release(synth_ptr, octave);
         }
 
-#ifdef __WINDOWS__
         /* Update the context of the audio thread */
+        /* This part of the context is the same on both Linux and Win32 */
         ctx.distortion_on = distortion_on;
         ctx.distortion_amount = distortion_amount;
         ctx.overdrive = overdrive;
 
         /* Get the sound data to display in the waveform visualizer */
+#ifdef __WINDOWS__
         EnterCriticalSection(&ctx.lock);
         memcpy(buffer, ctx.display_buffer, sizeof(buffer));
         LeaveCriticalSection(&ctx.lock);
 #elif defined(__LINUX__)
-        /* Get the MIDI input from the user */
-        if (midi_input)
-            get_midi(midi_in, &synth, &attack, &decay, &sustain, &release);
-        
-        /* Count the number of active voice */
-        for (int v = 0; v < VOICES; v++)
-            if (synth.voices[v].adsr->state != ENV_IDLE)
-                active_voices++;
-        
-        /* Process the synthesizer frame */
-        for (int i = 0; i < FRAMES; i++)
-        {
-            process_lfo(&synth);
-            double sample = process_voices(&synth);
-            sample = process_gain(synth, sample, active_voices);
-            sample = process_filter(&synth, sample);
-            buffer[i] = (short)(sample * 32767.0);
-            if (distortion_on)
-            {
-                buffer[i] = distortion(buffer[i], distortion_amount, overdrive);
-            }
-            process_arpeggiator(&synth, active_voices);
-        }
-
-        active_voices = 0;
-
-        /* Write the sound buffer to the sound card */
-        int err = snd_pcm_writei(handle, buffer, FRAMES);
-        if (err == -EPIPE)
-        {
-            fprintf(stderr, "ALSA underrun!\n");
-            snd_pcm_prepare(handle);
-        }
-        else if (err < 0)
-        {
-            fprintf(stderr, "ALSA write error: %s\n", snd_strerror(err));
-            snd_pcm_prepare(handle);
-        }
+        pthread_mutex_lock(&ctx.lock);
+        memcpy(buffer, ctx.buffer, sizeof(buffer));
+        pthread_mutex_unlock(&ctx.lock);
 #endif 
-        /* Write the buffer to the recording WAVE file */
-        if (fwav != NULL && recording == true)
-        {
-            fwrite(buffer, 2, FRAMES, fwav);
-            count++;
-        }
         /* Start recording if the WAVE file is not initialized*/
-        else if (fwav == NULL && recording == true)
+        if (ctx.recording_file == NULL && recording == true)
         {
             char audio_full_filename[1024] = "audio/";
             strcat(audio_full_filename, audio_filename);
             strcat(audio_full_filename, ".wav");
-            init_wav_header(&header);
-            init_wav_file(audio_full_filename, &fwav, &header);
+            init_wav_header(&ctx.wave_header);
+            init_wav_file(audio_full_filename, &ctx.recording_file, &ctx.wave_header);
             audio_filename[0] = '\0';
+            ctx.recording_on = 1;
         }
-        /* Stop recording and close the file if the recording has stopped */
-        else if (fwav != NULL && recording == false)
+        else if (recording == false && ctx.recording_on)
         {
-            header.sub2_size = FRAMES * count * (unsigned int)header.num_channels * (unsigned int)header.bits_per_sample / 8;
-            header.chunk_size = (unsigned int)header.sub2_size + 36;
-            fseek(fwav, 0, SEEK_SET);
-            fwrite(&header, 1, sizeof(header), fwav);
-            close_wav_file(fwav);
-            fwav = NULL;
-            count = 0;
+            ctx.recording_on = 0;
         }
-
+    
         /* Graphical User Interface rendering */
         BeginDrawing();
             ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
@@ -588,53 +553,58 @@ int main(int argc, char **argv)
     CloseWindow();
 
 #ifdef __WINDOWS__
-    /* close midi interface */
+    /* Close the MIDI interface */
     if (midi_valid)
     {
         midiInStop(midi_in);
         midiInClose(midi_in);
     }
 
-    /* stop audio thread*/
+    /* Close the Windows audio thread */
     InterlockedExchange(&ctx.should_stop, 1);
     WaitForSingleObject(audio_thread, INFINITE);
     CloseHandle(audio_thread);
     DeleteCriticalSection(&ctx.lock);
 
-    /* close sound interface */
+    /* Close the sound interface */
     waveOutClose(wave_out);
 #elif defined(__LINUX__)
-    if (midi_in)
+    /* Close the Linux audio thread */
+    pthread_cancel(audio_thread_id);
+
+    /* Close the MIDI interface */
+    if (ctx.midi_in)
     {
-        snd_rawmidi_close(midi_in);
+        snd_rawmidi_close(ctx.midi_in);
     }
 #endif
     /* If we quit the application during recording, change WAV header and close WAV file */
-    if (fwav != NULL && recording)
+    if (ctx.recording_file != NULL && recording)
     {
-        header.sub2_size = FRAMES * count * (unsigned int)header.num_channels * (unsigned int)header.bits_per_sample / 8;
-        header.chunk_size = (unsigned int)header.sub2_size + 36;
-        fseek(fwav, 0, SEEK_SET);
-        fwrite(&header, 1, sizeof(header), fwav);
-        close_wav_file(fwav);
+        ctx.wave_header.sub2_size = FRAMES * ctx.fwrite_count * (unsigned int)ctx.wave_header.num_channels * (unsigned int)ctx.wave_header.bits_per_sample / 8;
+        ctx.wave_header.chunk_size = (unsigned int)ctx.wave_header.sub2_size + 36;
+        fseek(ctx.recording_file, 0, SEEK_SET);
+        fwrite(&ctx.wave_header, 1, sizeof(ctx.wave_header), ctx.recording_file);
+        close_wav_file(ctx.recording_file);
     }
 
 #ifdef __LINUX__
 cleanup_alsa:
-    if (handle)
+    /* Close the sound interface */
+    if (ctx.audio_out)
     {
-        snd_pcm_drain(handle);
-        snd_pcm_close(handle);
+        snd_pcm_drain(ctx.audio_out);
+        snd_pcm_close(ctx.audio_out);
     }
 #endif
 cleanup_synth:
+    /* Free the synthesizer memory */
     for (int i = 0; i < VOICES; i++)
     {
         free(synth.voices[i].adsr);
         free(synth.voices[i].oscillators);
     }
     free(synth.voices);
-
 
     return 0;
 }

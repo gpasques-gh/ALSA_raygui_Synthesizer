@@ -65,11 +65,7 @@ $(OBJ_DIR):
 
 # Clean
 clean:
-    ifeq ($(DETECTED_OS),Windows)
-	    powershell -Command "rm -Recurse -Force '$(BIN_DIR)', '$(OBJ_DIR)'"
-    else
-        $(RM) $(BIN_DIR) $(OBJ_DIR)
-    endif
+	$(RM) $(BIN_DIR) $(OBJ_DIR)
 
 # Rebuild
 re: clean all
