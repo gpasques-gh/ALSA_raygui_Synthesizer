@@ -55,7 +55,7 @@ typedef struct tagBITMAPINFOHEADER {
 #endif
 
 /* Prints the usage of the CLI arguments into the error output */
-static void usage()
+static void __usage()
 {
 	fprintf(stderr, "synth -midi <midi hardware id> : midi keyboard input, able to change parameters of the sounds (ADSR, cutoff, detune and oscillators waveforms)\n");
 	fprintf(stderr, "use amidi -l to list your connected midi devices and find your midi device hardware id, often something like : hw:0,0,0 or hw:1,0,0\n");
@@ -78,12 +78,12 @@ int main(int argc, char **argv)
 		}
 		else if (strcmp(argv[1], "-midi") == 0 && argc < 3)
 		{
-			fprintf(stderr, "missing midi hardware device id. \n");
+			fprintf(stderr, "missing midi hardware device id.\n");
 			return 1;
 		}
 		else
 		{
-			usage();
+			__usage();
 			return 1;
 		}
 	}
@@ -115,7 +115,9 @@ int main(int argc, char **argv)
 			.attack = &filter_attack,
 			.decay = &filter_decay,
 			.sustain = &filter_sustain,
-			.release = &filter_release};
+			.release = &filter_release,
+			.state = ENV_IDLE,
+			.type = ENV_TYPE_FILTER};
 
 	/* Low-pass filter */
 	lp_filter_t filter =
@@ -180,6 +182,7 @@ int main(int argc, char **argv)
 		synth.voices[i].adsr->sustain = &sustain;
 		synth.voices[i].adsr->release = &release;
 		synth.voices[i].adsr->state = ENV_IDLE;
+		synth.voices[i].adsr->type = ENV_TYPE_FILTER;
 		synth.voices[i].adsr->output = 0.0;
 
 		synth.voices[i].note = -1;
@@ -411,6 +414,7 @@ int main(int argc, char **argv)
 	/* Initialize the raygui windows */
 	SetTraceLogLevel(LOG_WARNING);
 	InitWindow(WIDTH, HEIGHT, "ALSA & raygui synthesizer");
+	SetWindowState(FLAG_VSYNC_HINT);
 	Font annotation = LoadFont("Regular.ttf");
 	GuiSetFont(annotation);
 	GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * 0.5);

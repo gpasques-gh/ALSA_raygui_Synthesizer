@@ -13,6 +13,12 @@ typedef enum
 	ENV_RELEASE
 } env_state_t;
 
+typedef enum
+{
+	ENV_TYPE_SYNTH,
+	ENV_TYPE_FILTER
+} env_type_t;
+
 /*
  * Time-based ADSR envelope structure
  * Each parameter is expressed in seconds
@@ -24,6 +30,7 @@ typedef struct
 	float *attack, *decay, *sustain, *release;
 	float output;
 	env_state_t state;
+	env_type_t type;
 } adsr_t;
 
 /*
@@ -102,7 +109,7 @@ double process_voices(synth_t *synth);
 void process_lfo(synth_t *synth);
 
 /* Process the gain on a sample */
-double process_gain(synth_t synth, double sample, int active_voices);
+double process_gain(synth_t *synth, double sample, int active_voices);
 
 /* Process the low-pass filter on a sample */
 double process_filter(synth_t *synth, double sample);
@@ -122,13 +129,6 @@ void apply_detune_change(synth_t *synth);
 
 /* Get the literal name of a given waveform */
 const char *get_wave_name(int wave);
-
-/*
- * Process a sample with the low-pass filter and the given cutoff
- * Returns the processed sample
- */
-double lp_process(lp_filter_t *filter, double input,
-				float cutoff);
 
 /*
  * Returns the first free voice from the synth_t

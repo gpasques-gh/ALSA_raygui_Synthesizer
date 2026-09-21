@@ -34,7 +34,24 @@ float adsr_process(adsr_t *adsr)
 		}
 		else
 		{   /* If no attack, go in decay */
-			adsr->output = 1.0;
+			/* Logic for filter ADSR : 
+				- If there is decay, output = decay * 2 if decay is below 0.5, else output = 1.0
+				- If there is sustain and no decay, then output = sustain 
+				Avoiding clacky sound and better sounding filter ADSR in my opinion */
+			if (adsr->type == ENV_TYPE_FILTER &&
+					(*adsr->decay > 0.0 || 
+					 *adsr->sustain > 0.0 || 
+					 *adsr->release > 0.0))
+			{
+				adsr->output = *adsr->decay > 0.0 && *adsr->decay <= 0.5 ? 
+					*adsr->decay * 2.0 : 1.0; /* decay * 2 if decay in ]0.0..0.5] else 1.0 */
+				adsr->output = *adsr->sustain > 0.0 && *adsr->decay <= 0.0 ? 
+					*adsr->sustain : adsr->output; /* sustain if sustain > 0.0 and decay < 0.0 */
+			}
+			else
+			{
+				adsr->output = *adsr->decay;
+			}
 			adsr->state = ENV_DECAY;
 		}
 		break;
@@ -57,9 +74,14 @@ float adsr_process(adsr_t *adsr)
 				float decrement = (1.0 - *adsr->release) / (*adsr->decay * RATE);
 				adsr->output -= decrement;
 
-				if (adsr->output <= *adsr->release && adsr->release)
+				if (adsr->output <= *adsr->release && *adsr->release > 0.0)
 				{
 					adsr->output = *adsr->release;
+					adsr->state = ENV_RELEASE;
+				}
+				else if (adsr->output <= 0.0)
+				{
+					adsr->output = 0.0;
 					adsr->state = ENV_RELEASE;
 				}
 			}
@@ -82,8 +104,11 @@ float adsr_process(adsr_t *adsr)
 	case ENV_SUSTAIN:
 		if (*adsr->sustain == 0.0)
 		{   /* Increment the amplification by the attack amount */
-			float decrement = adsr->output / (*adsr->release * RATE);
-			adsr->output -= decrement;
+			if (*adsr->release > 0.0)
+			{
+				float decrement = adsr->output / (*adsr->release * RATE);
+				adsr->output -= decrement;
+			}
 			adsr->state = ENV_RELEASE;
 		}
 		else
@@ -243,10 +268,10 @@ void process_lfo(synth_t *synth)
 }
 
 /* Process the gain and low-pass filter onto the sound buffer */
-double process_gain(synth_t synth, double sample, int active_voices)
+double process_gain(synth_t *synth, double sample, int active_voices)
 {
 	/* No gain if arpeggio*/
-	if (synth.arp)
+	if (synth->arp)
 	{
 		return sample;
 	}
@@ -274,7 +299,7 @@ double process_filter(synth_t *synth, double sample)
 {
 	double cutoff = synth->filter->cutoff;
  
-	if (synth->filter->env)
+	if (synth->filter->env && synth->lfo->mod_param != LFO_CUTOFF)
 	{
 		cutoff = synth->filter->cutoff +
 						adsr_process(synth->filter->adsr) / 2;
@@ -285,12 +310,28 @@ double process_filter(synth_t *synth, double sample)
 		synth->filter->env_cutoff = cutoff;
 	}
 
-	/* If the LFO is on the filter, override the filter envelope */
-	if (synth->lfo->mod_param == LFO_CUTOFF)
+	/* Clipping */
+	if (cutoff > 1.0f)
 	{
-		cutoff = synth->filter->lfo_cutoff;
+		cutoff = 1.0f;
 	}
-	return lp_process(synth->filter, sample, cutoff);
+	if (cutoff < 0.0f)
+	{
+		cutoff = 0.0f;
+	}
+
+	/* Calculating the filter amplification */
+	float frequency = cutoff * (RATE / 16.0f);
+	float omega = 2.0f * M_PI * frequency / RATE;
+	float alpha = omega / (omega + 1.0f);
+	float input_f = (float)sample;
+	float output = alpha * input_f + (1.0f - alpha) * synth->filter->prev_output;
+
+	/* Setting the previous output and input of the filter */
+	synth->filter->prev_output = output;
+	synth->filter->prev_input = input_f;
+
+	return (double)output;
 }
 
 /* Process the arpeggiator */
@@ -386,37 +427,6 @@ const char *get_wave_name(int wave)
 	default:
 		return "Unknown wave";
 	}
-}
-
-/*
- * Process a sample with the low-pass filter and the given cutoff
- * Returns the processed sample
- */
-double lp_process(lp_filter_t *filter, double input,
-				float cutoff)
-{
-	/* Clipping */
-	if (cutoff > 1.0f)
-	{
-		cutoff = 1.0f;
-	}
-	if (cutoff < 0.0f)
-	{
-		cutoff = 0.0f;
-	}
-
-	/* Calculating the filter amplification */
-	float frequency = cutoff * (RATE / 8.0f);
-	float omega = 2.0f * M_PI * frequency / RATE;
-	float alpha = omega / (omega + 1.0f);
-	float input_f = (float)input;
-	float output = alpha * input_f + (1.0f - alpha) * filter->prev_output;
-
-	/* Setting the previous output and input of the filter */
-	filter->prev_output = output;
-	filter->prev_input = input_f;
-
-	return (double)output;
 }
 
 /*
