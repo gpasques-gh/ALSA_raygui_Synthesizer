@@ -1,3 +1,5 @@
+#ifndef __CLAP__
+
 #include "defs.h"
 #include "core/synth.h"
 #include "standalone/keyboard.h"
@@ -234,3 +236,5 @@ void release_note(synth_t *synth, int midi_note)
 		}   
 	}
 }
+
+#endif

@@ -1,7 +1,7 @@
 
 #ifdef __LINUX__
 	#define _GNU_SOURCE
-#elif defined(__WINDOWS__)
+#else
 	#define M_PI 3.14159265359
 #endif
 

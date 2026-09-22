@@ -1,3 +1,5 @@
+#ifndef __CLAP__
+
 #include "defs.h"
 #include "standalone/record.h"
 
@@ -77,3 +79,5 @@ int close_wav_file(FILE *fwav)
 	}
 	return 0;
 }
+
+#endif

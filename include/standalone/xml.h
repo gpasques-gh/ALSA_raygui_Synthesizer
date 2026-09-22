@@ -1,3 +1,5 @@
+#ifndef __CLAP__
+
 #ifndef XML_H
 #define XML_H
 
@@ -69,4 +71,5 @@ int parse_adsr(
 	float *sustain, float *release,
 	bool filter);
 
+#endif
 #endif

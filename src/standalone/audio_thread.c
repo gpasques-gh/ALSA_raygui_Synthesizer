@@ -1,3 +1,5 @@
+#ifndef __CLAP__
+
 #include <stdlib.h>
 
 #include "core/synth.h"
@@ -191,4 +193,5 @@ void *audio_thread_proc(void *param)
 	return 0;
 }
 
-#endif
+#endif 
+#endif 

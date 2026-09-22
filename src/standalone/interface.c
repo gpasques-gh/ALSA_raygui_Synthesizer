@@ -1,3 +1,5 @@
+#ifndef __CLAP__
+
 #include <stdio.h>
 
 #ifdef __WINDOWS__
@@ -393,3 +395,5 @@ int is_black_key(int midi_note)
 	int note = midi_note % 12;
 	return (note == 1 || note == 3 || note == 6 || note == 8 || note == 10);
 }
+
+#endif

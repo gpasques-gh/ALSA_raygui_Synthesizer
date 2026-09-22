@@ -1,3 +1,5 @@
+#ifndef __CLAP__
+
 #define RAYGUI_IMPLEMENTATION
 
 #ifdef __WINDOWS__
@@ -615,3 +617,5 @@ cleanup_synth:
 
 	return 0;
 }
+
+#endif

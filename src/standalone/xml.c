@@ -1,4 +1,4 @@
-
+#ifndef __CLAP__
 
 #ifdef __WINDOWS__
 
@@ -901,3 +901,5 @@ int parse_adsr(
 	}
 	return 0;
 }
+
+#endif

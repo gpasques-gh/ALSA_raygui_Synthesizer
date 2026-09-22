@@ -1,3 +1,4 @@
+#ifndef __CLAP__
 
 #include <stdint.h>
 
@@ -196,4 +197,5 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
 	return 0;
 }
 
-#endif 
+#endif /* __LINUX__ */
+#endif /* __CLAP__ */
