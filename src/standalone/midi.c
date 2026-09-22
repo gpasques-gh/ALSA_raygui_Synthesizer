@@ -18,81 +18,15 @@ static void __apply_midi_event(
 	/* If the MIDI message is a NOTE ON */
 	if ((status & PRESSED) == NOTE_ON && data2 > 0)
 	{
-		int pressed_voices = 0;
-
-		/* Count the currently pressed voices */
-		for (int v = 0; v < VOICES; v++)
-		{   
-			if (synth->voices[v].pressed)
-				pressed_voices++;
-			if (synth->voices[v].adsr->state == ENV_RELEASE && !synth->arp)
-				synth->voices[v].adsr->state = ENV_IDLE;
-		}
-
-		/* Get the first free voice */
-		voice_t *free_voice = get_free_voice(synth);
-		if (free_voice == NULL) return;
-
-		/* Press the voice and activate it */
-		free_voice->pressed = 1;
-		change_freq(free_voice, data1, data2, synth->detune);
-		if (pressed_voices == 0 && synth->filter->env)
-			synth->filter->adsr->state = ENV_ATTACK;
-			
-		/* If the arpeggiator is on */
-		if (synth->arp)
-		{
-			/* Sort the synthesizer voices by MIDI note */
-			sort_synth_voices(synth);
-			if (pressed_voices == 0)
-				synth->active_arp_float = 1.0;
-		}
+		/* Activate a voice with the given note and velocity */
+		voice_on(synth, data1, data2);
 	}
 	/* If the MIDI message is a NOTE OFF */
 	else if ((status & PRESSED) == NOTE_OFF ||
 				((status & PRESSED) == NOTE_ON && data2 == 0))
 	{
-		/* Count the currently pressed voices */
-		int pressed_voices = 0;
-		for (int v = 0; v < VOICES; v++)
-			if (synth->voices[v].pressed)
-				pressed_voices++;
-		
-		/* Loop through the voices to deactivate 
-		the one of which MIDI note has been released */
-		for (int v = 0; v < VOICES; v++)
-		{
-			if (synth->voices[v].note == data1 && 
-				synth->voices[v].pressed)
-			{
-				if (synth->arp && synth->voices[v].adsr->state != ENV_IDLE)
-				{
-					synth->voices[v].adsr->state = ENV_IDLE;
-				}
-				else if (!synth->arp &&
-						synth->voices[v].adsr->state != ENV_RELEASE &&
-						synth->voices[v].adsr->state != ENV_IDLE)
-				{
-					synth->voices[v].adsr->state = ENV_RELEASE;
-				}
-					
-				synth->voices[v].note = -1;
-				synth->voices[v].pressed = 0;
-
-				break; 
-			}
-		}
-
-		/* If the arpeggiator is on */
-		if (synth->arp)
-		{
-			/* Sort the voices by MIDI note */
-			sort_synth_voices(synth);
-			if (pressed_voices == 2)
-			{
-				synth->active_arp_float = 1.0;
-			}
-		}
+		/* Depress a voice with the given note */
+		voice_off(synth, data1);
 	}
 }
 

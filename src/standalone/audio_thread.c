@@ -43,7 +43,7 @@ static void __process_synthesizer(audio_thread_ctx_t *ctx, short buffer[FRAMES])
 {
 	/* Count active voices */
 	for (int v = 0; v < VOICES; v++)
-		if (ctx->synth.voices[v].adsr->state != ENV_IDLE)
+		if (ctx->synth.voices[v].adsr.state != ENV_IDLE)
 			ctx->active_voices++;
 
 	/* Process the synthesizer data */

@@ -107,22 +107,22 @@ int save_preset(
 		/* Filter ADSR */
 		filter_adsr_node = xmlNewChild(filter_node, NULL, BAD_CAST "filter_adsr", NULL);
 		/* Attack */
-		snprintf(text_element, 1024, "%.2f", *synth.filter->adsr->attack);
+		snprintf(text_element, 1024, "%.2f", synth.filter.adsr.attack);
 		xmlNewChild(filter_adsr_node, NULL, BAD_CAST "attack", BAD_CAST text_element);
 		/* Decay */
-		snprintf(text_element, 1024, "%.2f", *synth.filter->adsr->decay);
+		snprintf(text_element, 1024, "%.2f", synth.filter.adsr.decay);
 		xmlNewChild(filter_adsr_node, NULL, BAD_CAST "decay", BAD_CAST text_element);
 		/* Sustain */
-		snprintf(text_element, 1024, "%.2f", *synth.filter->adsr->sustain);
+		snprintf(text_element, 1024, "%.2f", synth.filter.adsr.sustain);
 		xmlNewChild(filter_adsr_node, NULL, BAD_CAST "sustain", BAD_CAST text_element);
 		/* Release */
-		snprintf(text_element, 1024, "%.2f", *synth.filter->adsr->release);
+		snprintf(text_element, 1024, "%.2f", synth.filter.adsr.release);
 		xmlNewChild(filter_adsr_node, NULL, BAD_CAST "release", BAD_CAST text_element);
 		/* Filter cutoff */
-		snprintf(text_element, 1024, "%.2f", synth.filter->cutoff);
+		snprintf(text_element, 1024, "%.2f", synth.filter.cutoff);
 		xmlNewChild(filter_node, NULL, BAD_CAST "cutoff", BAD_CAST text_element);
 		/* Filter envelope ON/OFF */
-		snprintf(text_element, 1024, "%d", synth.filter->env);
+		snprintf(text_element, 1024, "%d", synth.filter.env);
 		xmlNewChild(filter_node, NULL, BAD_CAST "envelope_on", BAD_CAST text_element);
 
 		/* Oscillators waveforms */
@@ -155,13 +155,13 @@ int save_preset(
 		/* LFO*/
 		lfo_node = xmlNewChild(effects_node, NULL, BAD_CAST "lfo", NULL);
 		/* LFO waveform */
-		snprintf(text_element, 1024, "%d", *synth.lfo->osc->wave);
+		snprintf(text_element, 1024, "%d", synth.lfo.osc.wave);
 		xmlNewChild(lfo_node, NULL, BAD_CAST "lfo_wave", BAD_CAST text_element);
 		/* LFO frequency */
-		snprintf(text_element, 1024, "%.2f", synth.lfo->osc->freq);
+		snprintf(text_element, 1024, "%.2f", synth.lfo.osc.freq);
 		xmlNewChild(lfo_node, NULL, BAD_CAST "lfo_freq", BAD_CAST text_element);
 		/* LFO parameter */
-		snprintf(text_element, 1024, "%d", synth.lfo->mod_param);
+		snprintf(text_element, 1024, "%d", synth.lfo.mod_param);
 		xmlNewChild(lfo_node, NULL, BAD_CAST "lfo_param", BAD_CAST text_element);
 
 		/* Distortion */
@@ -499,7 +499,7 @@ int parse_filter(xmlNode *filter_node,
 			{
 				cutoff_float = 0.0;
 			}
-			synth->filter->cutoff = cutoff_float;
+			synth->filter.cutoff = cutoff_float;
 		}
 		/* Filter ADSR envelope ON/OFF */
 		else if (child->type == XML_ELEMENT_NODE &&
@@ -522,7 +522,7 @@ int parse_filter(xmlNode *filter_node,
 			{
 				env_on_int = 0;
 			}
-			synth->filter->env = env_on_int;
+			synth->filter.env = env_on_int;
 		}
 	}
 	return 0;
@@ -634,7 +634,7 @@ int parse_lfo(xmlNode *lfo_node, synth_t *synth)
 			{
 				lfo_wave_int = SINE_WAVE;
 			}
-			*synth->lfo->osc->wave = lfo_wave_int;
+			synth->lfo.osc.wave = lfo_wave_int;
 		}
 		else if (lfo_child->type == XML_ELEMENT_NODE &&
 				xmlStrcmp(lfo_child->name, BAD_CAST "lfo_freq") == 0)
@@ -656,7 +656,7 @@ int parse_lfo(xmlNode *lfo_node, synth_t *synth)
 			{
 				lfo_freq_float = 0.0;
 			}
-			synth->lfo->osc->freq = lfo_freq_float;
+			synth->lfo.osc.freq = lfo_freq_float;
 		}
 		else if (lfo_child->type == XML_ELEMENT_NODE &&
 				xmlStrcmp(lfo_child->name, BAD_CAST "lfo_param") == 0)
@@ -678,7 +678,7 @@ int parse_lfo(xmlNode *lfo_node, synth_t *synth)
 			{
 				lfo_param_int = LFO_OFF;
 			}
-			synth->lfo->mod_param = lfo_param_int;
+			synth->lfo.mod_param = lfo_param_int;
 		}
 	}
 	return 0;
@@ -800,7 +800,7 @@ int parse_adsr(
 			
 			if (filter)
 			{
-				*synth->filter->adsr->attack = attack_float;
+				synth->filter.adsr.attack = attack_float;
 			}
 			else
 			{
@@ -831,7 +831,7 @@ int parse_adsr(
 				
 			if (filter)
 			{
-				*synth->filter->adsr->decay = decay_float;
+				synth->filter.adsr.decay = decay_float;
 			}
 			else
 			{
@@ -861,7 +861,7 @@ int parse_adsr(
 
 			if (filter)
 			{
-				*synth->filter->adsr->sustain = sustain_float;
+				synth->filter.adsr.sustain = sustain_float;
 			}
 			else
 			{
@@ -891,7 +891,7 @@ int parse_adsr(
 
 			if (filter)
 			{
-				*synth->filter->adsr->release = release_float;
+				synth->filter.adsr.release = release_float;
 			}
 			else
 			{

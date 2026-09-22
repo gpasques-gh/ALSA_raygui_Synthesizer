@@ -22,9 +22,9 @@ float adsr_process(adsr_t *adsr)
 		return 0.0;
 		break;
 	case ENV_ATTACK:
-		if (*adsr->attack > 0.0)
+		if (adsr->attack > 0.0)
 		{   /* Increment the amplification by the attack amount */
-			double increment = 1.0 / (*adsr->attack * RATE);
+			double increment = 1.0 / (adsr->attack * RATE);
 			adsr->output += increment;
 			if (adsr->output >= 1.0)
 			{
@@ -39,44 +39,44 @@ float adsr_process(adsr_t *adsr)
 				- If there is sustain and no decay, then output = sustain 
 				Avoiding clacky sound and better sounding filter ADSR in my opinion */
 			if (adsr->type == ENV_TYPE_FILTER &&
-					(*adsr->decay > 0.0 || 
-					 *adsr->sustain > 0.0 || 
-					 *adsr->release > 0.0))
+					(adsr->decay > 0.0 || 
+					 adsr->sustain > 0.0 || 
+					 adsr->release > 0.0))
 			{
-				adsr->output = *adsr->decay > 0.0 && *adsr->decay <= 0.5 ? 
-					*adsr->decay * 2.0 : 1.0; /* decay * 2 if decay in ]0.0..0.5] else 1.0 */
-				adsr->output = *adsr->sustain > 0.0 && *adsr->decay <= 0.0 ? 
-					*adsr->sustain : adsr->output; /* sustain if sustain > 0.0 and decay < 0.0 */
+				adsr->output = adsr->decay > 0.0 && adsr->decay <= 0.5 ? 
+					adsr->decay * 2.0 : 1.0; /* decay * 2 if decay in ]0.0..0.5] else 1.0 */
+				adsr->output = adsr->sustain > 0.0 && adsr->decay <= 0.0 ? 
+					adsr->sustain : adsr->output; /* sustain if sustain > 0.0 and decay < 0.0 */
 			}
 			else
 			{
-				adsr->output = *adsr->decay;
+				adsr->output = adsr->decay;
 			}
 			adsr->state = ENV_DECAY;
 		}
 		break;
 	case ENV_DECAY:
-		if (*adsr->decay > 0.0)
+		if (adsr->decay > 0.0)
 		{
-			if (*adsr->sustain > 0.0)
+			if (adsr->sustain > 0.0)
 			{   /* Decrement the amplification by the decay amount relatively to the sustain amount */
-				float decrement = (1.0 - *adsr->sustain) / (*adsr->decay * RATE);
+				float decrement = (1.0 - adsr->sustain) / (adsr->decay * RATE);
 				adsr->output -= decrement;
 
-				if (adsr->output <= *adsr->sustain)
+				if (adsr->output <= adsr->sustain)
 				{
-					adsr->output = *adsr->sustain;
+					adsr->output = adsr->sustain;
 					adsr->state = ENV_SUSTAIN;
 				}
 			}
 			else
 			{   /* Decrement the amplification by the decay amount relatively to the release amount */
-				float decrement = (1.0 - *adsr->release) / (*adsr->decay * RATE);
+				float decrement = (1.0 - adsr->release) / (adsr->decay * RATE);
 				adsr->output -= decrement;
 
-				if (adsr->output <= *adsr->release && *adsr->release > 0.0)
+				if (adsr->output <= adsr->release && adsr->release > 0.0)
 				{
-					adsr->output = *adsr->release;
+					adsr->output = adsr->release;
 					adsr->state = ENV_RELEASE;
 				}
 				else if (adsr->output <= 0.0)
@@ -88,25 +88,25 @@ float adsr_process(adsr_t *adsr)
 		}
 		else
 		{   /* If there is sustain, go in sustain */
-			if (*adsr->sustain > 0.0)
+			if (adsr->sustain > 0.0)
 			{
-				adsr->output = *adsr->sustain;
+				adsr->output = adsr->sustain;
 				adsr->state = ENV_SUSTAIN;
 			}
 			/* Else go in release */
 			else
 			{
-				adsr->output = *adsr->release;
+				adsr->output = adsr->release;
 				adsr->state = ENV_RELEASE;
 			}
 		}
 		break;
 	case ENV_SUSTAIN:
-		if (*adsr->sustain == 0.0)
+		if (adsr->sustain == 0.0)
 		{   /* Increment the amplification by the attack amount */
-			if (*adsr->release > 0.0)
+			if (adsr->release > 0.0)
 			{
-				float decrement = adsr->output / (*adsr->release * RATE);
+				float decrement = adsr->output / (adsr->release * RATE);
 				adsr->output -= decrement;
 			}
 			adsr->state = ENV_RELEASE;
@@ -114,13 +114,13 @@ float adsr_process(adsr_t *adsr)
 		else
 		{
 			/* We put the amplification at the sustain level */
-			adsr->output = *adsr->sustain;
+			adsr->output = adsr->sustain;
 		}
 		break;
 	case ENV_RELEASE:
-		if (*adsr->release > 0.0)
+		if (adsr->release > 0.0)
 		{   /* Decrement the amplification by the release amount */
-			float decrement = adsr->output / (*adsr->release * RATE);
+			float decrement = adsr->output / (adsr->release * RATE);
 			adsr->output -= decrement;
 			if (adsr->output <= 0.001)
 			{
@@ -148,23 +148,23 @@ double process_voices(synth_t *synth)
 	for (int v = 0; v < VOICES; v++)
 	{
 		voice_t *voice = &synth->voices[v];
-		if (voice->adsr->state == ENV_IDLE)
+		if (synth->voices[v].adsr.state == ENV_IDLE)
 		{
 			continue;
 		}
 
 		if ((synth->arp && v == synth->active_arp) || !synth->arp)
 		{
-			float envelope = adsr_process(voice->adsr);
+			float envelope = adsr_process(&synth->voices[v].adsr);
 			double mixed_osc = 0.0;
 
 			for (int o = 0; o < 3; o++)
 			{
-				osc_t *osc = &voice->oscillators[o];
+				osc_t *osc = &synth->voices[v].oscillators[o];
 				double phase_inc = osc->freq / RATE;
 				double sample;
 
-				switch (*osc->wave)
+				switch (osc->wave)
 				{
 				case SINE_WAVE:
 					sample = sin(2.0 * M_PI * osc->phase);
@@ -197,7 +197,7 @@ double process_voices(synth_t *synth)
 			mixed_osc *= envelope;
 			mixed_osc *= voice->velocity_amp;
 
-			if (synth->lfo->mod_param == LFO_AMP)
+			if (synth->lfo.mod_param == LFO_AMP)
 			{
 				mixed_osc *= synth->lfo_amp;
 			}
@@ -216,26 +216,26 @@ double process_voices(synth_t *synth)
 /* Process the LFO modulation */
 void process_lfo(synth_t *synth)
 {
-	if (synth->lfo->mod_param != LFO_OFF)
+	if (synth->lfo.mod_param != LFO_OFF)
 	{
 		/* Processing the LFO */
-		double phase_inc = synth->lfo->osc->freq / RATE;
+		double phase_inc = synth->lfo.osc.freq / RATE;
 		double automation;
 		
 		/* Calculating the wave from the LFO */
-		switch (*synth->lfo->osc->wave)
+		switch (synth->lfo.osc.wave)
 		{
 		case SINE_WAVE:
-			automation = fabs(sin(2.0 * M_PI * synth->lfo->osc->phase));
+			automation = fabs(sin(2.0 * M_PI * synth->lfo.osc.phase));
 			break;
 		case SQUARE_WAVE:
-			automation = (synth->lfo->osc->phase < 0.5) ? 1.0 : 0.0;
+			automation = (synth->lfo.osc.phase < 0.5) ? 1.0 : 0.0;
 			break;
 		case TRIANGLE_WAVE:
-			automation = fabs(1.0 - 4.0 * fabs(synth->lfo->osc->phase - 0.5));
+			automation = fabs(1.0 - 4.0 * fabs(synth->lfo.osc.phase - 0.5));
 			break;
 		case SAWTOOTH_WAVE:
-			automation = synth->lfo->osc->phase;
+			automation = synth->lfo.osc.phase;
 			break;
 		default:
 			automation = 0.0;
@@ -243,10 +243,10 @@ void process_lfo(synth_t *synth)
 		}
 
 		/* Applyging the LFO to the assigned parameter */
-		switch (synth->lfo->mod_param)
+		switch (synth->lfo.mod_param)
 		{
 		case LFO_CUTOFF:
-			synth->filter->lfo_cutoff = synth->filter->cutoff * automation;
+			synth->filter.lfo_cutoff = synth->filter.cutoff * automation;
 			break;
 		case LFO_DETUNE:
 			synth->lfo_detune = synth->detune * automation;
@@ -259,10 +259,10 @@ void process_lfo(synth_t *synth)
 			break;
 		}
 
-		synth->lfo->osc->phase += phase_inc;
-		if (synth->lfo->osc->phase >= 1.0)
+		synth->lfo.osc.phase += phase_inc;
+		if (synth->lfo.osc.phase >= 1.0)
 		{
-			synth->lfo->osc->phase -= 1.0;
+			synth->lfo.osc.phase -= 1.0;
 		}
 	}
 }
@@ -297,17 +297,17 @@ double process_gain(synth_t *synth, double sample, int active_voices)
 
 double process_filter(synth_t *synth, double sample)
 {
-	double cutoff = synth->filter->cutoff;
+	double cutoff = synth->filter.cutoff;
  
-	if (synth->filter->env && synth->lfo->mod_param != LFO_CUTOFF)
+	if (synth->filter.env && synth->lfo.mod_param != LFO_CUTOFF)
 	{
-		cutoff = synth->filter->cutoff +
-						adsr_process(synth->filter->adsr) / 2;
+		cutoff = synth->filter.cutoff +
+						adsr_process(&synth->filter.adsr) / 2;
 		if (cutoff > 1.0)
 		{
 			cutoff = 1.0;
 		}
-		synth->filter->env_cutoff = cutoff;
+		synth->filter.env_cutoff = cutoff;
 	}
 
 	/* Clipping */
@@ -325,11 +325,11 @@ double process_filter(synth_t *synth, double sample)
 	float omega = 2.0f * M_PI * frequency / RATE;
 	float alpha = omega / (omega + 1.0f);
 	float input_f = (float)sample;
-	float output = alpha * input_f + (1.0f - alpha) * synth->filter->prev_output;
+	float output = alpha * input_f + (1.0f - alpha) * synth->filter.prev_output;
 
 	/* Setting the previous output and input of the filter */
-	synth->filter->prev_output = output;
-	synth->filter->prev_input = input_f;
+	synth->filter.prev_output = output;
+	synth->filter.prev_input = input_f;
 
 	return (double)output;
 }
@@ -354,10 +354,10 @@ void process_arpeggiator(synth_t *synth, int active_voices)
 			/* Reseting ADSR envelope */
 			if (synth->voices[synth->active_arp].pressed)
 			{
-				synth->voices[synth->active_arp].adsr->state = ENV_ATTACK;
-				if (synth->filter->env)
+				synth->voices[synth->active_arp].adsr.state = ENV_ATTACK;
+				if (synth->filter.env)
 				{
-					synth->filter->adsr->state = ENV_ATTACK;
+					synth->filter.adsr.state = ENV_ATTACK;
 				}
 			}
 		}
@@ -375,8 +375,8 @@ void change_freq(voice_t *voice, int note,
 
 	/* Activating the voice */
 	voice->note = note;
-	voice->adsr->output = 0.001;
-	voice->adsr->state = ENV_ATTACK;
+	voice->adsr.output = 0.001;
+	voice->adsr.state = ENV_ATTACK;
 	voice->velocity_amp = velocity / MIDI_MAX_VALUE;
 
 	/* Applying the frequency and detune effect to the oscillators */
@@ -392,7 +392,7 @@ void change_freq(voice_t *voice, int note,
 void apply_detune_change(synth_t *synth)
 {
 	float detune;
-	if (synth->lfo->mod_param == LFO_DETUNE)
+	if (synth->lfo.mod_param == LFO_DETUNE)
 	{
 		detune = synth->lfo_detune;
 	}
@@ -437,7 +437,7 @@ voice_t *get_free_voice(synth_t *synth)
 {
 	for (int i = 0; i < VOICES; i++)
 	{
-		if (!synth->arp && synth->voices[i].adsr->state == ENV_IDLE)
+		if (!synth->arp && synth->voices[i].adsr.state == ENV_IDLE)
 		{
 			return &synth->voices[i];
 		}
@@ -480,5 +480,130 @@ void sort_synth_voices(synth_t *synth)
 		}
 
 		synth->voices[i + 1] = current;
+	}
+}
+
+void voice_on(synth_t *synth, int key, int vel)
+{
+	/* Count the currently pressed voices */
+	int pressed_voices = 0;
+	for (int v = 0; v < VOICES; v++)
+	{   
+		if (synth->voices[v].pressed)
+			pressed_voices++;
+		if (synth->voices[v].adsr.state == ENV_RELEASE && !synth->arp)
+			synth->voices[v].adsr.state = ENV_IDLE;
+	}
+
+	/* Get the first free voice */
+	voice_t *free_voice = get_free_voice(synth);
+	if (free_voice == NULL) return;
+
+	/* Press the voice and activate it */
+	free_voice->pressed = 1;
+	change_freq(free_voice, key, vel, synth->detune);
+	if (pressed_voices == 0 && synth->filter.env)
+			synth->filter.adsr.state = ENV_ATTACK;
+
+	/* If the arpeggiator is on */
+	if (synth->arp)
+	{
+		/* Sort the synthesizer voices by MIDI note */
+		sort_synth_voices(synth);
+		if (pressed_voices == 0)
+			synth->active_arp_float = 1.0;
+	}
+}
+
+void voice_off(synth_t *synth, int key)
+{
+	/* Count the currently pressed voices */
+	int pressed_voices = 0;
+	for (int v = 0; v < VOICES; v++)
+		if (synth->voices[v].pressed)
+			pressed_voices++;
+	
+	/* Loop through the voices to deactivate 
+	the one of which MIDI note has been released */
+	for (int v = 0; v < VOICES; v++)
+	{
+		if (synth->voices[v].note == key && 
+			synth->voices[v].pressed)
+		{
+			if (synth->arp && synth->voices[v].adsr.state != ENV_IDLE)
+			{
+				synth->voices[v].adsr.state = ENV_IDLE;
+			}
+			else if (!synth->arp &&
+					synth->voices[v].adsr.state != ENV_RELEASE &&
+					synth->voices[v].adsr.state != ENV_IDLE)
+			{
+				synth->voices[v].adsr.state = ENV_RELEASE;
+			}
+				
+			synth->voices[v].note = -1;
+			synth->voices[v].pressed = 0;
+
+			break; 
+		}
+	}
+
+	/* If the arpeggiator is on */
+	if (synth->arp)
+	{
+		/* Sort the voices by MIDI note */
+		sort_synth_voices(synth);
+		if (pressed_voices == 2)
+		{
+			synth->active_arp_float = 1.0;
+		}
+	}
+}
+
+void update_filter_params(
+	synth_t *synth,
+	float cutoff,
+	float a, float d, float s, float r,
+	bool env)
+{
+	synth->filter.cutoff = cutoff;
+	synth->filter.adsr.attack = a;
+	synth->filter.adsr.decay = d;
+	synth->filter.adsr.sustain = s;
+	synth->filter.adsr.release = r;
+	synth->filter.env = env;
+}
+
+void update_lfo_params(
+	synth_t *synth,
+	int waveform,
+	int param)
+{
+	synth->lfo.osc.wave = waveform;
+	synth->lfo.mod_param = param;
+}
+
+void update_synth_envelope(
+	synth_t *synth,
+	float a, float d, float s, float r)
+{
+	for (int v = 0; v < VOICES; v++)
+	{
+		synth->voices[v].adsr.attack = a;
+		synth->voices[v].adsr.decay = d;
+		synth->voices[v].adsr.sustain = s;
+		synth->voices[v].adsr.release = r;
+	}
+}
+
+void update_synth_oscillators(
+	synth_t *synth, 
+	int w_a, int w_b, int w_c)
+{
+	for (int v = 0; v < VOICES; v++)
+	{
+		synth->voices[v].oscillators[0].wave = w_a;
+		synth->voices[v].oscillators[1].wave = w_b;
+		synth->voices[v].oscillators[2].wave = w_c;
 	}
 }

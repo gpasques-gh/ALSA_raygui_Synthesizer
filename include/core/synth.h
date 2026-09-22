@@ -27,7 +27,7 @@ typedef enum
  */
 typedef struct
 {
-	float *attack, *decay, *sustain, *release;
+	float attack, decay, sustain, release;
 	float output;
 	env_state_t state;
 	env_type_t type;
@@ -40,12 +40,12 @@ typedef struct
 typedef struct
 {
 	float freq, phase;
-	int *wave;
+	int wave;
 } osc_t;
 
 typedef struct 
 {
-	osc_t *osc;
+	osc_t osc;
 	int mod_param;
 } lfo_t;
 
@@ -53,7 +53,7 @@ typedef struct
 typedef struct
 {
 	float prev_input, prev_output, cutoff, env_cutoff, lfo_cutoff;
-	adsr_t *adsr;
+	adsr_t adsr;
 	bool env;
 } lp_filter_t;
 
@@ -65,7 +65,7 @@ typedef struct
 typedef struct
 {
 	osc_t *oscillators;
-	adsr_t *adsr;
+	adsr_t adsr;
 	int pressed;
 	int note;
 	double velocity_amp;
@@ -84,8 +84,8 @@ typedef struct
 typedef struct
 {
 	voice_t *voices;
-	lp_filter_t *filter;
-	lfo_t *lfo;
+	lp_filter_t filter;
+	lfo_t lfo;
 	float detune;
 	float lfo_detune;
 	float amp;
@@ -138,5 +138,30 @@ voice_t *get_free_voice(synth_t *synth);
 
 /* Insertion sort algorithm for the voices of a synth_t, used for the arpeggiator */
 void sort_synth_voices(synth_t *synth);
+
+/* Open a voice with a given MIDI note */
+void voice_on(synth_t *synth, int key, int vel);
+
+/* Cut a voice with a given MIDI note active */
+void voice_off(synth_t *synth, int key);
+
+void update_filter_params(
+	synth_t *synth,
+	float cutoff,
+	float a, float d, float s, float r,
+	bool env);
+
+void update_lfo_params(
+	synth_t *synth,
+	int waveform,
+	int param);
+
+void update_synth_envelope(
+	synth_t *synth,
+	float a, float d, float s, float r);
+
+void update_synth_oscillators(
+	synth_t *synth, 
+	int w_a, int w_b, int w_c);
 
 #endif

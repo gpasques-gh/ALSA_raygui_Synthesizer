@@ -40,26 +40,28 @@ void render_adsr(
 }
 
 /* Render the filter ADSR envelope sliders */
-void render_filter_adsr(synth_t *synth)
+void render_filter_adsr(
+	float *attack, float *decay,
+	float *sustain, float *release)
 {
 	/* Filter ADSR envelope sliders */
 	GuiGroupBox((Rectangle){610, 40, 550, 160}, "Filter ADSR Envelope");
 
 	GuiLabel((Rectangle){730, 50, 100, 20}, "Attack");
 	GuiSlider((Rectangle){640, 70, 225, 40}, NULL, NULL,
-			  synth->filter->adsr->attack, 0.0f, 2.0f);
+			  attack, 0.0f, 2.0f);
 
 	GuiLabel((Rectangle){730, 120, 100, 20}, "Decay");
 	GuiSlider((Rectangle){640, 140, 225, 40}, NULL, NULL,
-			  synth->filter->adsr->decay, 0.0f, 2.0f);
+			  decay, 0.0f, 2.0f);
 
 	GuiLabel((Rectangle){990, 50, 100, 20}, "Sustain");
 	GuiSlider((Rectangle){900, 70, 225, 40}, NULL, NULL,
-			  synth->filter->adsr->sustain, 0.0f, 1.0f);
+			  sustain, 0.0f, 1.0f);
 
 	GuiLabel((Rectangle){990, 120, 100, 20}, "Release");
 	GuiSlider((Rectangle){900, 140, 225, 40}, NULL, NULL,
-			  synth->filter->adsr->release, 0.0f, 1.0f);
+			  release, 0.0f, 1.0f);
 }
 
 /* Render the oscillators waveforms dropdown menus*/
@@ -105,17 +107,17 @@ void render_synth_params(synth_t *synth)
 	GuiLabel((Rectangle){730, 240, 100, 20}, "Amp");
 	GuiSlider((Rectangle){640, 260, 225, 40}, NULL, NULL,
 			  &synth->amp, 0.0f, 1.0f);
-	if (synth->lfo->mod_param == LFO_AMP)
+	if (synth->lfo.mod_param == LFO_AMP)
 	{
 		DrawRectangle(640, 260, 225 * synth->lfo_amp, 40, GRAY);
 	}
 	   
 	GuiLabel((Rectangle){730, 310, 100, 20}, "Cutoff");
 	GuiSlider((Rectangle){640, 330, 225, 40}, NULL, NULL,
-			  &synth->filter->cutoff, 0.025f, 1.0f); /* 2.5% to 100% to avoid muting */
-	if (synth->lfo->mod_param == LFO_CUTOFF)
+			  &synth->filter.cutoff, 0.025f, 1.0f); /* 2.5% to 100% to avoid muting */
+	if (synth->lfo.mod_param == LFO_CUTOFF)
 	{
-		DrawRectangle(640, 330, 225 * (synth->filter->lfo_cutoff / 2), 40, GRAY);
+		DrawRectangle(640, 330, 225 * synth->filter.lfo_cutoff, 40, GRAY);
 	}
 
 	GuiLabel((Rectangle){990, 240, 100, 20}, "Detune");
@@ -125,13 +127,13 @@ void render_synth_params(synth_t *synth)
 		apply_detune_change(synth);
 	}
 	   
-	if (synth->lfo->mod_param == LFO_DETUNE)
+	if (synth->lfo.mod_param == LFO_DETUNE)
 	{
 		DrawRectangle(900, 260, 225 * synth->lfo_detune, 40, GRAY);
 	}
 		
 	GuiCheckBox((Rectangle){900, 330, 40, 40}, "Filter ADSR",
-				&synth->filter->env);
+				&synth->filter.env);
 }
 
 /* Render the options menu */
@@ -185,7 +187,7 @@ void render_options(
 	{
 		for (int v = 0; v < VOICES; v++)
 		{
-			synth->voices[v].adsr->state = ENV_IDLE;
+			synth->voices[v].adsr.state = ENV_IDLE;
 			synth->voices[v].pressed = 0;
 		}
 	}
@@ -206,12 +208,12 @@ void render_effects(
 
 	GuiLabel((Rectangle){1210 + 265 / 2 - 120 / 2, 120, 120, 20}, "LFO frequency");
 	GuiSlider((Rectangle){1210, 140, 265, 40}, NULL, NULL,
-			  &synth->lfo->osc->freq, 0.0f, 1.0f);
+			  &synth->lfo.osc.freq, 0.0f, 1.0f);
 
 	GuiLabel((Rectangle){1210 + 130 / 2 - 80 / 2, 50, 80, 20}, "LFO wave");
 	if (GuiDropdownBox((Rectangle){1210, 70, 130, 40},
 					   "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth",
-					   synth->lfo->osc->wave, *lfo_wave_ddm))
+					   &synth->lfo.osc.wave, *lfo_wave_ddm))
 	{
 		*lfo_wave_ddm = !*lfo_wave_ddm;
 	}
@@ -219,7 +221,7 @@ void render_effects(
 	GuiLabel((Rectangle){1345 + 130 / 2 - 100 / 2, 50, 100, 20}, "LFO param");
 	if (GuiDropdownBox((Rectangle){1345, 70, 130, 40},
 					   "#01#Off;#02#Cutoff;#03#Detune;#04#Amp",
-					   &synth->lfo->mod_param, *lfo_params_ddm))
+					   &synth->lfo.mod_param, *lfo_params_ddm))
 	{
 		*lfo_params_ddm = !*lfo_params_ddm;
 	}

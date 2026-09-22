@@ -116,10 +116,10 @@ int main(int argc, char **argv)
 	/* Filter ADSR envelope */
 	adsr_t filter_adsr =
 		{
-			.attack = &filter_attack,
-			.decay = &filter_decay,
-			.sustain = &filter_sustain,
-			.release = &filter_release,
+			.attack = filter_attack,
+			.decay = filter_decay,
+			.sustain = filter_sustain,
+			.release = filter_release,
 			.state = ENV_IDLE,
 			.type = ENV_TYPE_FILTER};
 
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 			.cutoff = 0.5,
 			.prev_input = 0.0,
 			.prev_output = 0.0,
-			.adsr = &filter_adsr,
+			.adsr = filter_adsr,
 			.env = false};
 
 	/* Low Frequency Oscillator oscillator */
@@ -137,12 +137,12 @@ int main(int argc, char **argv)
 		{
 			.freq = 0.5,
 			.phase = 0.0,
-			.wave = &osc_lfo};
+			.wave = osc_lfo};
 
 	/* Low Frequency Oscillator */
 	lfo_t lfo = 
 		{
-			.osc = &lfo_osc,
+			.osc = lfo_osc,
 			.mod_param = LFO_OFF};
 	
 	/* Polyphonic Synthesizer */
@@ -151,8 +151,8 @@ int main(int argc, char **argv)
 			.voices = malloc(sizeof(voice_t) * VOICES),
 			.amp = DEFAULT_AMPLITUDE,
 			.detune = 0.0,
-			.filter = &filter,
-			.lfo = &lfo,
+			.filter = filter,
+			.lfo = lfo,
 			.arp = false,
 			.active_arp = 0,
 			.active_arp_float = 1.0,
@@ -167,27 +167,14 @@ int main(int argc, char **argv)
 	/* Create the synthesizer voices */
 	for (int i = 0; i < VOICES; i++)
 	{
-		synth.voices[i].adsr = malloc(sizeof(adsr_t));
-		if (synth.voices[i].adsr == NULL)
-		{
-			fprintf(stderr, "memory allocation failed.\n");
-			for (int j = 0; j < i; j++)
-			{
-				free(synth.voices[j].adsr);
-				free(synth.voices[j].oscillators);
-			}
-			free(synth.voices);
-			return 1;
-		}
-
 		/* Synthesizer ADSR envelope */
-		synth.voices[i].adsr->attack = &attack;
-		synth.voices[i].adsr->decay = &decay;
-		synth.voices[i].adsr->sustain = &sustain;
-		synth.voices[i].adsr->release = &release;
-		synth.voices[i].adsr->state = ENV_IDLE;
-		synth.voices[i].adsr->type = ENV_TYPE_FILTER;
-		synth.voices[i].adsr->output = 0.0;
+		synth.voices[i].adsr.attack = attack;
+		synth.voices[i].adsr.decay = decay;
+		synth.voices[i].adsr.sustain = sustain;
+		synth.voices[i].adsr.release = release;
+		synth.voices[i].adsr.state = ENV_IDLE;
+		synth.voices[i].adsr.type = ENV_TYPE_FILTER;
+		synth.voices[i].adsr.output = 0.0;
 
 		synth.voices[i].note = -1;
 		synth.voices[i].velocity_amp = 0.0;
@@ -478,7 +465,7 @@ int main(int argc, char **argv)
 			/* ADSR envelope GUI */
 			render_adsr(&attack, &decay, &sustain, &release);
 			/* Filter ADSR envelope GUI */
-			render_filter_adsr(&synth);
+			render_filter_adsr(&filter_attack, &filter_decay, &filter_sustain, &filter_release);
 			/* Oscillators waveforms selection GUI */
 			render_osc_waveforms(
 				&wave_a, &wave_b, &wave_c,
@@ -521,6 +508,10 @@ int main(int argc, char **argv)
 					distortion_on, overdrive,
 					distortion_amount);
 			}
+
+			update_synth_oscillators(synth_ptr, wave_a, wave_b, wave_c);
+			update_synth_envelope(synth_ptr, attack, decay, sustain, release);
+			update_filter_params(synth_ptr, synth_ptr->filter.cutoff, filter_attack, filter_decay, filter_sustain, filter_release, synth_ptr->filter.env);
 
 			/* Keyboard visualizer rendering */
 			
@@ -610,7 +601,6 @@ cleanup_synth:
 	/* Free the synthesizer memory */
 	for (int i = 0; i < VOICES; i++)
 	{
-		free(synth.voices[i].adsr);
 		free(synth.voices[i].oscillators);
 	}
 	free(synth.voices);

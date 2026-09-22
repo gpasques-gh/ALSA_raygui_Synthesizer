@@ -48,7 +48,7 @@ void handle_input(synth_t *synth, int *octave,
 		don't get stucked when sustain is not at 0.0 */
 		for (int v = 0; v < VOICES; v++)
 		{
-			synth->voices[v].adsr->state = ENV_IDLE;
+			synth->voices[v].adsr.state = ENV_IDLE;
 			synth->voices[v].pressed = 0;
 			synth->voices[v].note = -1;
 		}
@@ -60,7 +60,7 @@ void handle_input(synth_t *synth, int *octave,
 		don't get stucked when sustain is not at 0.0 */
 		for (int v = 0; v < VOICES; v++)
 		{
-			synth->voices[v].adsr->state = ENV_IDLE;
+			synth->voices[v].adsr.state = ENV_IDLE;
 			synth->voices[v].pressed = 0;
 			synth->voices[v].note = -1;
 		}
@@ -157,9 +157,9 @@ void assign_note(synth_t *synth, int midi_note)
 				
 
 			/* Cutting all the voices that are in ADSR release state to avoid blocking voices */
-			if (synth->voices[v].adsr->state == ENV_RELEASE && !synth->arp)
+			if (synth->voices[v].adsr.state == ENV_RELEASE && !synth->arp)
 			{
-				synth->voices[v].adsr->state = ENV_IDLE;
+				synth->voices[v].adsr.state = ENV_IDLE;
 			}
 		}
 
@@ -171,9 +171,9 @@ void assign_note(synth_t *synth, int midi_note)
 
 		free_voice->pressed = 1;
 		change_freq(free_voice, midi_note, 127, synth->detune);
-		if (pressed_voices == 0 && synth->filter->env)
+		if (pressed_voices == 0 && synth->filter.env)
 		{
-			synth->filter->adsr->state = ENV_ATTACK;
+			synth->filter.adsr.state = ENV_ATTACK;
 		}
 			
 
@@ -208,16 +208,16 @@ void release_note(synth_t *synth, int midi_note)
 		if (synth->voices[v].note == midi_note && 
 			synth->voices[v].pressed == 1)
 		{
-			if (synth->arp && synth->voices[v].adsr->state != ENV_IDLE)
+			if (synth->arp && synth->voices[v].adsr.state != ENV_IDLE)
 			{
-				synth->voices[v].adsr->state = ENV_IDLE;
+				synth->voices[v].adsr.state = ENV_IDLE;
 			}
 			else if (
 			   !synth->arp && 
-				synth->voices[v].adsr->state != ENV_RELEASE &&
-				synth->voices[v].adsr->state != ENV_IDLE)
+				synth->voices[v].adsr.state != ENV_RELEASE &&
+				synth->voices[v].adsr.state != ENV_IDLE)
 			{
-				synth->voices[v].adsr->state = ENV_RELEASE;
+				synth->voices[v].adsr.state = ENV_RELEASE;
 			}
 				
 			synth->voices[v].note = -1;
