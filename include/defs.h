@@ -1,11 +1,13 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#ifndef __CLAP__
 #if defined(__WINDOWS__) && !defined(__NO_RL__)
 #include "raylib/src/raylib.h"
 #elif defined(__LINUX__)
 #include <raylib.h>
-#endif
+#endif /* OS */
+#endif /* __CLAP__ */
 
 #include <stdio.h>
 #include <string.h>
@@ -24,38 +26,6 @@
 #define nA 9
 #define nA_SHARP 10
 #define nB 11
-
-/* Keyboard layouts */
-#define QWERTY 0
-#define AZERTY 1
-
-/* Keyboard note keys */
-#if !defined(__NO_RL__)
-#define kC KEY_A
-#define kC_SHARP KEY_W
-#define kD KEY_S
-#define kD_SHARP KEY_E
-#define kE KEY_D
-#define kF KEY_F
-#define kF_SHARP KEY_T
-#define kG KEY_G
-#define kG_SHARP KEY_Y
-#define kA KEY_H
-#define kA_SHARP KEY_U
-#define kB KEY_J
-
-/* Keyboard oscillator keys */
-#define KEY_OSC_A KEY_Z
-#define KEY_OSC_B KEY_X
-#define KEY_OSC_C KEY_C
-
-/* Keyboard ADSR envelope keys */
-#define KEY_ADSR KEY_LEFT_SHIFT
-#define KEY_ATT KEY_Z
-#define KEY_DEC KEY_X
-#define KEY_SUS KEY_C
-#define KEY_REL KEY_V
-#endif
 
 /* MIDI packets informations */
 #define MIDI_MAX_VALUE 127.0
@@ -102,14 +72,48 @@
 #define MONO 1
 #define STEREO 2
 #define BITS 16
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__) && !defined(__CLAP__)
 #define NUM_BUFFERS 4
 #endif
 
-/* SDL interface */
+#ifndef __CLAP__
+
+/* Keyboard layouts */
+#define QWERTY 0
+#define AZERTY 1
+
+/* Keyboard note keys */
+#ifndef __NO_RL__
+#define kC KEY_A
+#define kC_SHARP KEY_W
+#define kD KEY_S
+#define kD_SHARP KEY_E
+#define kE KEY_D
+#define kF KEY_F
+#define kF_SHARP KEY_T
+#define kG KEY_G
+#define kG_SHARP KEY_Y
+#define kA KEY_H
+#define kA_SHARP KEY_U
+#define kB KEY_J
+
+/* Keyboard oscillator keys */
+#define KEY_OSC_A KEY_Z
+#define KEY_OSC_B KEY_X
+#define KEY_OSC_C KEY_C
+
+/* Keyboard ADSR envelope keys */
+#define KEY_ADSR KEY_LEFT_SHIFT
+#define KEY_ATT KEY_Z
+#define KEY_DEC KEY_X
+#define KEY_SUS KEY_C
+#define KEY_REL KEY_V
+#endif
+
+/* Raygui interface */
 #define WIDTH 1769
 #define HEIGHT 800
-#define TITLE "ALSA & SDL Synthesizer"
+#define TITLE "ALSA & raygui Synthesizer"
 
 /* MIDI piano visualizer */
 #define WHITE_KEYS 52
@@ -118,6 +122,7 @@
 #define WHITE_KEYS_HEIGHT HEIGHT / 4
 #define BLACK_KEYS_WIDTH WHITE_KEYS_WIDTH / 2
 #define BLACK_KEYS_HEIGHT (WHITE_KEYS_HEIGHT * 2) / 3
+#endif /* __CLAP__ */
 
 /* LFO modulated parameters */
 #define LFO_OFF 0

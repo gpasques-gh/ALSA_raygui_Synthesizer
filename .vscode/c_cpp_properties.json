@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "compileCommands":
+                "${workspaceFolder}/.vscode/compile_commands.linux.json",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        },
+        {
+            "name": "Win32",
+            "compileCommands":
+                "${workspaceFolder}/.vscode/compile_commands.win32.json",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        },
+        {
+            "name": "CLAP",
+            "compileCommands": 
+                "${workspaceFolder}/.vscode/compile_commands.clap.json",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64"        
+        }
+    ],
+    "version": 4
+}
