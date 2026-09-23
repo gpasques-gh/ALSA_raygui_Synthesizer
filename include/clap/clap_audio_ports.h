@@ -5,7 +5,7 @@
 
 #include "clap_lib/clap.h"
 
-const uint32_t audio_ports_count(
+uint32_t audio_ports_count(
 	const clap_plugin_t *plugin, 
 	bool is_input);
 

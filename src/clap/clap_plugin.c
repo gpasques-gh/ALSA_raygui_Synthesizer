@@ -4,6 +4,7 @@
 #include "clap/clap_audio_ports.h"
 #include "clap/clap_note_ports.h"
 #include "clap/clap_params.h"
+#include "clap/gui/clap_gui.h"
 
 #include "defs.h"
 #include "core/synth.h"
@@ -20,6 +21,30 @@ static const clap_plugin_note_ports_t note_ports_ext =
 	.count = note_ports_count,
 	.get = note_ports_get
 };
+
+/* Synth CLAP plugin features */
+const char *__features[] =
+{
+	CLAP_PLUGIN_FEATURE_INSTRUMENT,
+	CLAP_PLUGIN_FEATURE_SYNTHESIZER,
+	NULL
+};
+
+/* Synth CLAP plugin descriptors */
+const clap_plugin_descriptor_t __descriptor =
+{
+	.clap_version = CLAP_VERSION_INIT,
+	.id = "com.example.midi-synth",
+	.name = "Raygui Synth - CLAP Version",
+	.vendor = "gpasques-gh",
+	.url = "github.com/gpasques-gh/ALSA_raygui_Synthesizer.git",
+	.manual_url = "",
+	.support_url = "",
+	.version = "1.0.0",
+	.description = "Minimal CLAP MIDI Synth",
+	.features = __features
+};
+
 
 /* Free the synthesizer */
 static void synth_free(const clap_plugin_t *plugin)
@@ -423,7 +448,9 @@ void plugin_on_main_thread(const clap_plugin_t *plugin)
 
 const void posix_on_fd(const clap_plugin_t *plugin, int fd, clap_posix_fd_flags_t flags)
 {
+	(void)flags;
 	synth_plugin_t *p = (synth_plugin_t *)plugin->plugin_data;
+	gui_on_POSIX_fd(p);
 }
 
 static const clap_plugin_posix_fd_support_t posix_fd_support_ext =
@@ -437,6 +464,8 @@ const void *plugin_get_extension(const clap_plugin_t *plugin, const char *id)
     (void)plugin;
 
 	extern const clap_plugin_params_t params_ext;
+	extern const clap_plugin_gui_t gui_ext;
+
 	if (!strcmp(id, CLAP_EXT_PARAMS)) return &params_ext;
     if (!strcmp(id, CLAP_EXT_NOTE_PORTS))  return &note_ports_ext;
     if (!strcmp(id, CLAP_EXT_AUDIO_PORTS)) return &audio_ports_ext;

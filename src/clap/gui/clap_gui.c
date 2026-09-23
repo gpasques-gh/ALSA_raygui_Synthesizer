@@ -2,6 +2,12 @@
 
 #include "clap_lib/clap.h"
 #include "clap/clap_plugin.h"
+#include "clap/gui/clap_gui.h"
+
+void plugin_paint(synth_plugin_t *plugin, uint32_t *bits) {}
+void plugin_process_mouse_drag(synth_plugin_t *plugin, int x, int y) {}
+void plugin_process_mouse_press(synth_plugin_t *plugin, int x, int y) {}
+void plugin_process_mouse_release(synth_plugin_t *plugin) {}
 
 /* Check wether current API is supported */
 bool is_api_supported(
@@ -35,7 +41,7 @@ bool create(const clap_plugin_t *plugin, const char *api, bool is_floating)
 
 void destroy(const clap_plugin_t *plugin)
 {
-    //gui_destroy((synth_plugin_t *)plugin->plugin_data);
+    gui_destroy((synth_plugin_t *)plugin->plugin_data);
 }
 
 bool set_scale(const clap_plugin_t *plugin, double scale)
@@ -77,9 +83,9 @@ bool adjust_size(
 
 bool set_size(
     const clap_plugin_t *plugin, 
-    clap_gui_resize_hints_t *hints)
+    uint32_t w, uint32_t h)
 {
-    (void)plugin; (void)hints; 
+    (void)plugin; (void)w; (void)h; 
     return true;
 }
 
@@ -87,7 +93,8 @@ bool set_parent(
     const clap_plugin_t *plugin, 
     const clap_window_t *window)
 {
-    //gui_set_parent((synth_plugin_t *)plugin->plugin_data, window);
+    gui_set_parent((synth_plugin_t *)plugin->plugin_data, window);
+    return true;
 }
 
 bool set_transient(
@@ -102,13 +109,13 @@ void suggest_title(const clap_plugin_t *plugin, const char *title) { }
 
 bool show(const clap_plugin_t *plugin)
 {
-    //gui_set_visible((synth_plugin_t *)plugin->plugin_data, true);
+    gui_set_visible((synth_plugin_t *)plugin->plugin_data, true);
     return true;
 }
 
 bool hide(const clap_plugin_t *plugin)
 {
-    //gui_set_visible((synth_plugin_t *)plugin->plugin_data, false);
+    gui_set_visible((synth_plugin_t *)plugin->plugin_data, false);
     return true;
 }
 
@@ -130,10 +137,5 @@ const clap_plugin_gui_t gui_ext =
     .show = show,
     .hide = hide
 };
-
-
-
-
-
 
 #endif 

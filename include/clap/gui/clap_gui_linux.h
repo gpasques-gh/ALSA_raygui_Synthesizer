@@ -24,6 +24,9 @@ typedef struct
 } clap_gui_t;
 
 void gui_create(synth_plugin_t *plugin);
+void gui_destroy(synth_plugin_t *plugin);
+void gui_set_parent(synth_plugin_t *plugin, const clap_window_t *window);
+void gui_set_visible(synth_plugin_t *plugin, bool visible);
 void gui_on_POSIX_fd(synth_plugin_t *plugin);
 
 #endif 

@@ -5,7 +5,7 @@
 #include "clap_lib/clap.h"
 #include "clap/clap_note_ports.h"
 
-const uint32_t note_ports_count(
+uint32_t note_ports_count(
 	const clap_plugin_t *plugin, 
 	bool is_input)
 {

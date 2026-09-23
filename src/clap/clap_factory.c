@@ -7,28 +7,6 @@
 #include "clap/clap_factory.h"
 #include "clap/clap_plugin.h"
 
-/* Synth CLAP plugin features */
-static const char *__features[] =
-{
-	CLAP_PLUGIN_FEATURE_INSTRUMENT,
-	CLAP_PLUGIN_FEATURE_SYNTHESIZER,
-	NULL
-};
-
-/* Synth CLAP plugin descriptors */
-static const clap_plugin_descriptor_t __descriptor =
-{
-	.clap_version = CLAP_VERSION_INIT,
-	.id = "com.example.midi-synth",
-	.name = "Raygui Synth - CLAP Version",
-	.vendor = "gpasques-gh",
-	.url = "github.com/gpasques-gh/ALSA_raygui_Synthesizer.git",
-	.manual_url = "",
-	.support_url = "",
-	.version = "1.0.0",
-	.description = "Minimal CLAP MIDI Synth",
-	.features = __features
-};
 
 /* Plugin factory */
 const clap_plugin_t *create_plugin_instance(

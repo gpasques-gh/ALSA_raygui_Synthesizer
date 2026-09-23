@@ -29,6 +29,9 @@ typedef HANDLE mutex;
 
 #include <stdatomic.h>
 
+extern const char *__features[];
+extern const clap_plugin_descriptor_t __descriptor;
+
 /* Synth CLAP plugin structure */
 typedef struct synth_plugin_s
 {
