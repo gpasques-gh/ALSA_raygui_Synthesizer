@@ -22,25 +22,15 @@ typedef HANDLE mutex;
 
 #endif
 
-#define P_VOLUME (0)
-#define P_WAVE_A (1)
-#define P_WAVE_B (2)
-#define P_WAVE_C (3)
-#define P_DETUNE (4)
-#define P_ATTACK (5)
-#define P_DECAY (6)
-#define P_SUSTAIN (7)
-#define P_RELEASE (8)
-#define P_CUTOFF (9)
-#define P_COUNT (10)
-
 #include "clap_lib/clap.h"
+#include "clap/clap_params.h"
+#include "clap/gui/clap_gui.h"
 #include "core/synth.h"
 
 #include <stdatomic.h>
 
 /* Synth CLAP plugin structure */
-typedef struct
+typedef struct synth_plugin_s
 {
 	clap_plugin_t plugin;
 	const clap_host_t *host;
@@ -52,6 +42,8 @@ typedef struct
 	/* Parameters */
 	_Atomic float params[P_COUNT];
 	
+	clap_gui_t *gui;
+	const clap_host_posix_fd_support_t *host_POSIX_support;	
 } synth_plugin_t;
 
 void process_event(

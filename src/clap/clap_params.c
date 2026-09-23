@@ -14,7 +14,12 @@ const param_desc_t PARAMS[P_COUNT] =
 	PARAM_DECAY,
 	PARAM_SUSTAIN,
 	PARAM_RELEASE,
-	PARAM_CUTOFF
+	PARAM_CUTOFF,
+	PARAM_FILTER_ATTACK,
+	PARAM_FILTER_DECAY,
+	PARAM_FILTER_SUSTAIN,
+	PARAM_FILTER_RELEASE,
+	PARAM_FILTER_ENV_ON,
 };
 
 const param_desc_t *param_desc_from_id(clap_id id)
@@ -87,6 +92,11 @@ static bool params_value_to_text(
 		snprintf(out, capacity, "%s", get_wave_name((int)value));
 	else if (id == P_ATTACK || id == P_DECAY || id == P_RELEASE)
 		snprintf(out, capacity, "%.3f s", value);
+	else if (id == P_FILTER_ENV_ON)
+		if ((int)value)
+			snprintf(out, capacity, "%s", "Filter Env ON");
+		else
+			snprintf(out, capacity, "%s", "Filter Env OFF");
 	else
 		snprintf(out, capacity, "%.2f", value);
 	
@@ -110,7 +120,9 @@ static bool params_text_to_value(
     if (!strcmp(text, "Square"))   { *out_value = SQUARE_WAVE; return true; }
     if (!strcmp(text, "Triangle")) { *out_value = TRIANGLE_WAVE; return true; }
     if (!strcmp(text, "Sawtooth")) { *out_value = SAWTOOTH_WAVE; return true; }
-
+	if (!strcmp(text, "Filter Env ON")) { *out_value = 1; return true; }
+	if (!strcmp(text, "Filter Env OFF")) { *out_value = 0; return true; }
+	
 	/* Parse the value from string to double */
 	char *end = NULL;
 	double value = strtod(text, &end);
@@ -136,7 +148,7 @@ static void params_flush(
 	synth_plugin_t *p = plugin->plugin_data;
 	uint32_t count = in->size(in);
 
-	for (int i = 0; i < count; i++)
+	for (uint32_t i = 0; i < count; i++)
 	{
 		const clap_event_header_t *event = in->get(in, i);
 		if (event->space_id == CLAP_CORE_EVENT_SPACE_ID && 

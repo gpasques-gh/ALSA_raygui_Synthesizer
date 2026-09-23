@@ -43,6 +43,9 @@ static void synth_alocate(const clap_plugin_t *plugin)
 {
 	synth_plugin_t *p = (synth_plugin_t *)plugin->plugin_data;
 
+	p->host_POSIX_support = (const clap_host_posix_fd_support_t *)
+		p->host->get_extension(p->host, CLAP_EXT_POSIX_FD_SUPPORT);
+
 	/* Initializing CLAP parameters */
 	atomic_init(&p->params[P_VOLUME], 1.0f);
 	atomic_init(&p->params[P_WAVE_A], SINE_WAVE);
@@ -54,6 +57,11 @@ static void synth_alocate(const clap_plugin_t *plugin)
 	atomic_init(&p->params[P_SUSTAIN], 0.7f);
 	atomic_init(&p->params[P_RELEASE], 0.2f);
 	atomic_init(&p->params[P_CUTOFF], 0.5f);
+	atomic_init(&p->params[P_FILTER_ATTACK], 0.0f);
+	atomic_init(&p->params[P_FILTER_DECAY], 0.0f);
+	atomic_init(&p->params[P_FILTER_SUSTAIN], 0.0f);
+	atomic_init(&p->params[P_FILTER_RELEASE], 0.0f);
+	atomic_init(&p->params[P_FILTER_ENV_ON], 0.0f);
 
 	/* Low-Pass Filter */
 	p->synth.filter.cutoff = 0.5;
@@ -62,9 +70,9 @@ static void synth_alocate(const clap_plugin_t *plugin)
 	p->synth.filter.env = false;
 
 	p->synth.filter.adsr.attack = 0.0;
-	p->synth.filter.adsr.decay = 0.3;
+	p->synth.filter.adsr.decay = 0.0;
 	p->synth.filter.adsr.sustain = 0.0;
-	p->synth.filter.adsr.release = 0.2;
+	p->synth.filter.adsr.release = 0.0;
 	p->synth.filter.adsr.output = 0.0;
 	p->synth.filter.adsr.state = ENV_IDLE;
 	p->synth.filter.adsr.type = ENV_TYPE_FILTER;
@@ -233,9 +241,6 @@ void process_event(
 			p->synth.detune = (float)value; 
 			apply_detune_change(&p->synth);
 			break;
-		case P_CUTOFF:
-			p->synth.filter.cutoff = (float)value;
-			break;
 		case P_WAVE_A:
 			__apply_wave_change_to_osc(&p->synth, 0, (int)value);
 			break;
@@ -256,6 +261,24 @@ void process_event(
 			break;
 		case P_RELEASE:
 			__apply_adsr_change(&p->synth, 3, (float)value);
+			break;
+		case P_CUTOFF:
+			p->synth.filter.cutoff = (float)value;
+			break;
+		case P_FILTER_ATTACK:
+			p->synth.filter.adsr.attack = (float)value;
+			break;
+		case P_FILTER_DECAY:
+			p->synth.filter.adsr.decay = (float)value;
+			break;
+		case P_FILTER_SUSTAIN:
+			p->synth.filter.adsr.sustain = (float)value;
+			break;
+		case P_FILTER_RELEASE:
+			p->synth.filter.adsr.release = (float)value;
+			break;
+		case P_FILTER_ENV_ON:
+			p->synth.filter.env = (bool)(int)(value);
 			break;
 		default:
 			break;
@@ -328,7 +351,7 @@ clap_process_status plugin_process(
 
 /* Initialize the plugin */
 bool plugin_init(const clap_plugin_t *plugin) 
-{ 
+{
 	synth_alocate(plugin);
 	return true; 
 }
@@ -398,6 +421,16 @@ void plugin_on_main_thread(const clap_plugin_t *plugin)
 	(void)plugin;
 }
 
+const void posix_on_fd(const clap_plugin_t *plugin, int fd, clap_posix_fd_flags_t flags)
+{
+	synth_plugin_t *p = (synth_plugin_t *)plugin->plugin_data;
+}
+
+static const clap_plugin_posix_fd_support_t posix_fd_support_ext =
+{
+	.on_fd = posix_on_fd,
+};
+
 /* Get all of the plugin extensions (PARAMS, NOTE_PORTS & AUDIO_PORTS) */
 const void *plugin_get_extension(const clap_plugin_t *plugin, const char *id)
 {
@@ -407,6 +440,8 @@ const void *plugin_get_extension(const clap_plugin_t *plugin, const char *id)
 	if (!strcmp(id, CLAP_EXT_PARAMS)) return &params_ext;
     if (!strcmp(id, CLAP_EXT_NOTE_PORTS))  return &note_ports_ext;
     if (!strcmp(id, CLAP_EXT_AUDIO_PORTS)) return &audio_ports_ext;
+	if (!strcmp(id, CLAP_EXT_GUI)) return &gui_ext;
+	if (!strcmp(id, CLAP_EXT_POSIX_FD_SUPPORT)) return &posix_fd_support_ext;
     return NULL;
 }
 

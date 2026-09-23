@@ -3,9 +3,26 @@
 #ifndef __CLAP_PARAMS_H__
 #define __CLAP_PARAMS_H__
 
-#include "clap/clap_plugin.h"
+
 
 /* Parameters defines */
+
+#define P_VOLUME (0)
+#define P_WAVE_A (1)
+#define P_WAVE_B (2)
+#define P_WAVE_C (3)
+#define P_DETUNE (4)
+#define P_ATTACK (5)
+#define P_DECAY (6)
+#define P_SUSTAIN (7)
+#define P_RELEASE (8)
+#define P_CUTOFF (9)
+#define P_FILTER_ATTACK (10)
+#define P_FILTER_DECAY (11)
+#define P_FILTER_SUSTAIN (12)
+#define P_FILTER_RELEASE (13)
+#define P_FILTER_ENV_ON (14)
+#define P_COUNT (15)
 
 /* Volume */
 #define PARAM_VOLUME { P_VOLUME, "Volume", "Master", CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_REQUIRES_PROCESS, 0.0, 1.0, 1.0 }
@@ -27,7 +44,13 @@
 
 /* Low-Pass Filter */
 #define PARAM_CUTOFF { P_CUTOFF, "Cutoff", "Low-Pass Filter", CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_REQUIRES_PROCESS, 0.0, 1.0, 0.5 }
+#define PARAM_FILTER_ATTACK { P_FILTER_ATTACK, "Filter Attack", "Filter Amplitude Envelope", CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_REQUIRES_PROCESS, 0.0, 2.0, 0.0 }
+#define PARAM_FILTER_DECAY { P_FILTER_DECAY, "Filter Decay", "Filter Amplitude Envelope", CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_REQUIRES_PROCESS, 0.0, 2.0, 0.0 }
+#define PARAM_FILTER_SUSTAIN { P_FILTER_SUSTAIN, "Filter Sustain", "Filter Amplitude Envelope", CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_REQUIRES_PROCESS, 0.0, 1.0, 0.0 }
+#define PARAM_FILTER_RELEASE { P_FILTER_RELEASE, "Filter Release", "Filter Amplitude Envelope", CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_REQUIRES_PROCESS, 0.0, 2.0, 0.0 }
+#define PARAM_FILTER_ENV_ON { P_FILTER_ENV_ON, "Filter Envelope ON/OFF", "Filter Amplitude Envelope", CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM | CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_REQUIRES_PROCESS, 0, 1, 0 }
 
+#include "clap/clap_plugin.h"
 
 typedef struct 
 {

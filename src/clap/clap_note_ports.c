@@ -1,5 +1,7 @@
 #ifdef __CLAP__
 
+#include <stdio.h>
+
 #include "clap_lib/clap.h"
 #include "clap/clap_note_ports.h"
 

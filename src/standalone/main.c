@@ -194,9 +194,9 @@ int main(int argc, char **argv)
 			synth.voices[i].oscillators[j].phase = 0.0;
 		}
 
-		synth.voices[i].oscillators[0].wave = &wave_a;
-		synth.voices[i].oscillators[1].wave = &wave_b;
-		synth.voices[i].oscillators[2].wave = &wave_c;
+		synth.voices[i].oscillators[0].wave = wave_a;
+		synth.voices[i].oscillators[1].wave = wave_b;
+		synth.voices[i].oscillators[2].wave = wave_c;
 	}
 
 	/* Accessing the synthesizer data through a pointer for thread concurrency */
