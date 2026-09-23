@@ -1,5 +1,7 @@
 #ifdef __CLAP__
 
+#include <string.h>
+
 #include "clap_lib/clap.h"
 #include "clap/clap_plugin.h"
 #include "clap/gui/clap_gui.h"

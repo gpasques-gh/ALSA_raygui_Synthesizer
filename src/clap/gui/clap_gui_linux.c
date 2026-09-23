@@ -1,5 +1,7 @@
 #ifdef __linux__
 
+#include <stdlib.h>
+
 #include "clap/clap_plugin.h"
 #include "clap/gui/clap_gui_linux.h"
 
@@ -7,7 +9,7 @@
 
 static void gui_paint(synth_plugin_t *plugin, bool internal)
 {
-    if (internal) PluginPaint(plugin, plugin->gui->bits);
+    if (internal) plugin_paint(plugin, plugin->gui->bits);
     XPutImage(
         plugin->gui->display, 
         plugin->gui->window, 
@@ -34,7 +36,7 @@ static void gui_X11_process_event(synth_plugin_t *plugin, XEvent *event)
         if (event->xbutton.window == plugin->gui->window && event->xbutton.button == 1)
             plugin_process_mouse_press(plugin, event->xbutton.x, event->xbutton.y);
     }
-    else if (event->type = ButtonRelease)
+    else if (event->type == ButtonRelease)
     {
         if (event->xbutton.window == plugin->gui->window && event->xbutton.button == 1)
             plugin_process_mouse_release(plugin);
@@ -54,12 +56,12 @@ void gui_create(synth_plugin_t *plugin)
         DefaultRootWindow(plugin->gui->display),
         0, 0, GUI_WIDTH, GUI_HEIGHT, 0, 0, 
         InputOutput, CopyFromParent, CWOverrideRedirect, &attributes);
-    XStoreName(plugin->gui->display, plugin->gui->window, &__descriptor.name);
+    XStoreName(plugin->gui->display, plugin->gui->window, __descriptor.name);
 
     /* Set embed information for the window */
     Atom embed_info_atom = XInternAtom(plugin->gui->display, "_XEMBED_INFO", 0);
     uint32_t embed_info_data[2] = {0 /* version */, 0 /* not mapped */};
-    XChangePorperty(
+    XChangeProperty(
         plugin->gui->display, plugin->gui->window, 
         embed_info_atom, embed_info_atom, 
         32, PropModeReplace, 
@@ -73,7 +75,7 @@ void gui_create(synth_plugin_t *plugin)
     XSetWMNormalHints(plugin->gui->display, plugin->gui->window, &size_hints);
 
     /* Select the events the window will receive */
-    XSelectInputs(plugin->gui->display, plugin->gui->window, INPUTS);
+    XSelectInput(plugin->gui->display, plugin->gui->window, INPUTS);
 
     /* Create the bitmap */
     plugin->gui->image = XCreateImage(
@@ -156,7 +158,7 @@ void gui_on_POSIX_fd(synth_plugin_t *plugin)
 
         gui_X11_process_event(plugin, &event);
         XFlush(plugin->gui->display);
-        gui_pain(plugin, true);
+        gui_paint(plugin, true);
     }
 
     XFlush(plugin->gui->display);
