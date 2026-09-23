@@ -3,10 +3,7 @@
 #ifndef __CLAP_PARAMS_H__
 #define __CLAP_PARAMS_H__
 
-
-
 /* Parameters defines */
-
 #define P_VOLUME (0)
 #define P_WAVE_A (1)
 #define P_WAVE_B (2)
