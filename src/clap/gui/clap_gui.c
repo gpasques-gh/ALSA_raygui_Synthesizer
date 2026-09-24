@@ -6,12 +6,7 @@
 #include "clap/clap_plugin.h"
 #include "clap/gui/clap_gui.h"
 
-typedef struct
-{
-	uint32_t left, right, top, bottom, border, fill;
-} rectangle_t;
-
-static void plugin_paint_rec(synth_plugin_t *plugin, uint32_t *bits, rectangle_t rec)
+static void plugin_paint_rec(uint32_t *bits, rectangle_t rec)
 {
 	for (uint32_t y = rec.top; y < rec.bottom; y++)
 	{
@@ -22,10 +17,16 @@ static void plugin_paint_rec(synth_plugin_t *plugin, uint32_t *bits, rectangle_t
 				y == rec.bottom - 1 || 
 				x == rec.left ||
 				x == rec.right - 1)
-					? rec.border
-					: rec.fill;
+					? rec.border_color
+					: rec.fill_color;
 		}
 	}
+}
+
+static void plugin_paint_slider(uint32_t *bits, slider_t slider)
+{
+	plugin_paint_rec(bits, slider.rec_value);
+	plugin_paint_rec(bits, slider.rec);
 }
 
 void plugin_paint(synth_plugin_t *plugin, uint32_t *bits) 
@@ -33,33 +34,18 @@ void plugin_paint(synth_plugin_t *plugin, uint32_t *bits)
 	rectangle_t background = 
 	{
 		.left = 0, .right = GUI_WIDTH,
-		.top = 0, .border = GUI_HEIGHT,
-		.border = 0xC0C0C0, .fill = 0xC0C0C0
+		.top = 0, .bottom = GUI_HEIGHT,
+		.border_color = 0x000000, .fill_color = 0x000000
 	};
 
-	rectangle_t amp_slider = 
-	{
-		.left = 10, .right = 40,
-		.top = 10, .bottom = 40,
-		.border = 0x000000, .fill = 0xC0C0C0
-	};
-
-	rectangle_t amp_slider_fill = 
-	{
-		.left = 10, .right = 40,
-		.top = 10 + 30 * (1.0f - plugin->synth.amp),
-		.bottom = 40,
-		.border = 0x000000, .fill = 0xC0C0C0
-	};
-
-	plugin_paint_rec(plugin, bits, background);
-	plugin_paint_rec(plugin, bits, amp_slider);
-	plugin_paint_rec(plugin, bits, amp_slider_fill);
+	plugin_paint_rec(bits, background);
+	plugin->gui->elements.volume_slider.param_value = plugin->synth.amp;
+	plugin_paint_slider(bits, plugin->gui->elements.volume_slider);
 }
 
 void plugin_process_mouse_drag(synth_plugin_t *plugin, int x, int y)
 {
-	
+
 }
 void plugin_process_mouse_press(synth_plugin_t *plugin, int x, int y) {}
 void plugin_process_mouse_release(synth_plugin_t *plugin) {}

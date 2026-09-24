@@ -10,12 +10,15 @@
 #include <windows.h>
 #include <windowsx.h>
 
+#include "clap/gui/clap_gui.h"
+
 typedef struct synth_plugin_s synth_plugin_t;
 
 typedef struct
 {
     HWND window;
     uint32_t *bits;
+    gui_elements_t elements;
 } clap_gui_t;
 
 #include "clap/clap_plugin.h"

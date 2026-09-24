@@ -6,19 +6,16 @@
 #define GUI_WIDTH (800)
 #define GUI_HEIGHT (400)
 
-#ifdef __linux__
-#include "clap/gui/clap_gui_linux.h"
-#elif defined(_WIN32)
-#include "clap/gui/clap_gui_windows.h"
-#endif 
-
-#include "clap/clap_plugin.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 typedef struct synth_plugin_s synth_plugin_t;
 
 typedef struct
 {
-	uint32_t left, right, top, bottom, border, fill;
+	uint32_t left, right, top, bottom;
+	uint32_t border_color, fill_color;
+	uint32_t border_width;
 } rectangle_t;
 
 /* Slider structure */
@@ -26,6 +23,7 @@ typedef struct
 typedef struct
 {
 	rectangle_t rec;
+	rectangle_t rec_value;
 	clap_id param_id;
 	float param_value;
 } slider_t;
@@ -48,6 +46,7 @@ typedef struct
 {
 	rectangle_t base_rec;
 	menu_entry_t *entries;
+	bool entries_on;
 	clap_id param_id;
 	uint32_t param_value;
 } menu_t;
@@ -63,6 +62,14 @@ typedef struct
 
 	menu_t waveforms;
 } gui_elements_t;
+
+#ifdef __linux__
+#include "clap/gui/clap_gui_linux.h"
+#elif defined(_WIN32)
+#include "clap/gui/clap_gui_windows.h"
+#endif
+
+#include "clap/clap_plugin.h"
 
 void plugin_paint(synth_plugin_t *plugin, uint32_t *bits);
 void plugin_process_mouse_drag(synth_plugin_t *plugin, int x, int y);

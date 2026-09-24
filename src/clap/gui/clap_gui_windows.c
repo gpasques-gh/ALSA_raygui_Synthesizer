@@ -1,9 +1,34 @@
 #ifdef _WIN32
 
+#include "clap_lib/clap.h"
+#include "clap/gui/clap_gui.h"
 #include "clap/gui/clap_gui_windows.h"
 #include "clap/clap_plugin.h"
 
+#define GRAY 0xC0C0C0
+#define BLACK 0x0000000
+
 static int global_open_gui_count = 0;
+
+static void gui_create_elements(synth_plugin_t *plugin)
+{
+	rectangle_t amp_slider_rec = 
+	{
+		10, 100, 10, 40,
+		BLACK, GRAY
+	};
+
+	rectangle_t amp_slider_rec_value = 
+	{
+		10 + 90 * (1.0f - plugin->synth.amp),
+		20 + 80 * (1.0f - plugin->synth.amp),
+		10, 40, GRAY, BLACK
+	};
+
+	plugin->gui->elements.volume_slider.rec = amp_slider_rec;
+	plugin->gui->elements.volume_slider.rec_value = amp_slider_rec_value;
+	plugin->gui->elements.volume_slider.param_value = plugin->synth.amp;
+}
 
 static void gui_paint(synth_plugin_t *plugin, bool internal)
 {
@@ -60,6 +85,8 @@ LRESULT CALLBACK gui_window_procedure(
 void gui_create(synth_plugin_t *plugin)
 {
 	plugin->gui = (clap_gui_t *)calloc(1, sizeof(clap_gui_t));
+
+	gui_create_elements(plugin);
 
 	if (global_open_gui_count == 0)
 	{
