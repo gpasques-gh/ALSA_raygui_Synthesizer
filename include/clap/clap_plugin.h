@@ -35,6 +35,7 @@ extern const clap_plugin_descriptor_t __descriptor;
 /* Synth CLAP plugin structure */
 typedef struct synth_plugin_s
 {
+	/* CLAP Variables */
 	clap_plugin_t plugin;
 	const clap_host_t *host;
 	double sample_rate;
@@ -44,9 +45,15 @@ typedef struct synth_plugin_s
 
 	/* Parameters */
 	_Atomic float params[P_COUNT];
+	atomic_bool params_dirty[P_COUNT];
+	atomic_bool gestures_start[P_COUNT], gestures_end[P_COUNT];
+	const clap_host_params_t *host_params;
 	
+	/* Graphical User Interface */
 	clap_gui_t *gui;
-	const clap_host_posix_fd_support_t *host_POSIX_support;	
+	mouse_t mouse;
+	const clap_host_posix_fd_support_t
+		*host_POSIX_support;
 } synth_plugin_t;
 
 void process_event(

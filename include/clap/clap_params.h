@@ -47,7 +47,7 @@
 #define PARAM_FILTER_RELEASE { P_FILTER_RELEASE, "Filter Release", "Filter Amplitude Envelope", CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_REQUIRES_PROCESS, 0.0, 2.0, 0.0 }
 #define PARAM_FILTER_ENV_ON { P_FILTER_ENV_ON, "Filter Envelope ON/OFF", "Filter Amplitude Envelope", CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM | CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_REQUIRES_PROCESS, 0, 1, 0 }
 
-#include "clap/clap_plugin.h"
+
 
 typedef struct 
 {
@@ -61,7 +61,15 @@ typedef struct
 extern const param_desc_t PARAMS[P_COUNT];
 extern const clap_plugin_params_t params_ext;
 
+typedef struct synth_plugin_s synth_plugin_t;
+
+void apply_param_to_engine(
+	synth_plugin_t *p, 
+	clap_id id, 
+	float value);
 const param_desc_t *param_desc_from_id(clap_id id);
+
+#include "clap/clap_plugin.h"
 
 #endif 
 #endif

@@ -34,12 +34,25 @@ static void gui_X11_process_event(synth_plugin_t *plugin, XEvent *event)
     else if (event->type == ButtonPress)
     {
         if (event->xbutton.window == plugin->gui->window && event->xbutton.button == 1)
+        {
             plugin_process_mouse_press(plugin, event->xbutton.x, event->xbutton.y);
+            XGrabPointer(
+                plugin->gui->display,
+                plugin->gui->window,
+                False,
+                PointerMotionMask | ButtonReleaseMask,
+                GrabModeAsync, GrabModeAsync,
+                None, None,
+                CurrentTime);
+        }
     }
     else if (event->type == ButtonRelease)
     {
         if (event->xbutton.window == plugin->gui->window && event->xbutton.button == 1)
-            plugin_process_mouse_release(plugin);
+        {
+            plugin_process_mouse_release(plugin, event->xbutton.x, event->xbutton.y);
+            XUngrabPointer(plugin->gui->display, CurrentTime);
+        }
     }
 }
 
@@ -47,6 +60,8 @@ void gui_create(synth_plugin_t *plugin)
 {
     /* Allocate the GUI */
     plugin->gui = (clap_gui_t *)calloc(1, sizeof(clap_gui_t));
+
+    gui_create_elements(plugin);
 
     /* Open the X11 display and window */
     plugin->gui->display = XOpenDisplay(NULL);

@@ -11,7 +11,8 @@
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
 
-#include "clap/clap_plugin.h"
+
+#include "clap/gui/clap_gui.h"
 
 typedef struct synth_plugin_s synth_plugin_t;
 
@@ -21,7 +22,10 @@ typedef struct
     Window window;
     XImage *image;
     uint32_t *bits;
+    gui_elements_t elements;
 } clap_gui_t;
+
+#include "clap/clap_plugin.h"
 
 void gui_create(synth_plugin_t *plugin);
 void gui_destroy(synth_plugin_t *plugin);

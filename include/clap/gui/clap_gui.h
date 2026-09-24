@@ -6,6 +6,9 @@
 #define GUI_WIDTH (800)
 #define GUI_HEIGHT (400)
 
+#define GRAY 0xC0C0C0
+#define BLACK 0x0000000
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -63,6 +66,15 @@ typedef struct
 	menu_t waveforms;
 } gui_elements_t;
 
+typedef struct 
+{
+	bool mouse_dragging;
+	uint32_t mouse_drag_og_x;
+	uint32_t mouse_drag_og_y;
+	float drag_param_og_val;
+	uint32_t drag_param_id;
+} mouse_t;
+
 #ifdef __linux__
 #include "clap/gui/clap_gui_linux.h"
 #elif defined(_WIN32)
@@ -71,10 +83,11 @@ typedef struct
 
 #include "clap/clap_plugin.h"
 
+void gui_create_elements(synth_plugin_t *plugin);
 void plugin_paint(synth_plugin_t *plugin, uint32_t *bits);
 void plugin_process_mouse_drag(synth_plugin_t *plugin, int x, int y);
 void plugin_process_mouse_press(synth_plugin_t *plugin, int x, int y);
-void plugin_process_mouse_release(synth_plugin_t *plugin);
+void plugin_process_mouse_release(synth_plugin_t *plugin, int x, int y);
 
 #endif /* __CLAP_GUI_H__ */
 #endif /* __CLAP__*/

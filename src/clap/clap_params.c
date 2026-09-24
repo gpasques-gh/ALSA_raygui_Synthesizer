@@ -1,5 +1,6 @@
 #ifdef __CLAP__
 
+#include "clap/clap_plugin.h"
 #include "clap/clap_params.h"
 #include "defs.h"
 
@@ -21,6 +22,99 @@ const param_desc_t PARAMS[P_COUNT] =
 	PARAM_FILTER_RELEASE,
 	PARAM_FILTER_ENV_ON,
 };
+
+/* Change the oscillators waveforms from the DAW */
+static void __apply_wave_change_to_osc(synth_t *synth, int osc, int wave)
+{
+	if (osc < 0 || osc > 2 || wave < SINE_WAVE || wave > SAWTOOTH_WAVE)
+		return;
+	for (int v = 0; v < VOICES; v++)
+		synth->voices[v].oscillators[osc].wave = wave;
+}
+
+/* Change the ADSR envelope parameters from the DAW */
+static void __apply_adsr_change(synth_t *synth, int param, float value)
+{
+	if (param < 0 || param > 4)
+		return;
+	
+	for (int v = 0; v < VOICES; v++)
+	{
+		switch (param)
+		{
+		case 0: /* Attack */
+			synth->voices[v].adsr.attack = value;
+			break;
+		case 1: /* Decay */
+			synth->voices[v].adsr.decay = value;
+			break;
+		case 2: /* Sustain */
+			synth->voices[v].adsr.sustain = value;
+			break;
+		case 3: /* Release */
+			synth->voices[v].adsr.release = value;
+			break;
+		}
+	}
+}
+
+void apply_param_to_engine(
+	synth_plugin_t *p, 
+	clap_id id, 
+	float value)
+{
+	switch(id)
+	{
+	case P_VOLUME: 
+		p->synth.amp = (float)value; 
+		break;
+	case P_DETUNE: 
+		p->synth.detune = (float)value; 
+		apply_detune_change(&p->synth);
+		break;
+	case P_WAVE_A:
+		__apply_wave_change_to_osc(&p->synth, 0, (int)value);
+		break;
+	case P_WAVE_B:
+		__apply_wave_change_to_osc(&p->synth, 1, (int)value);
+		break;
+	case P_WAVE_C:
+		__apply_wave_change_to_osc(&p->synth, 2, (int)value);
+		break;
+	case P_ATTACK:
+		__apply_adsr_change(&p->synth, 0, (float)value);
+		break;
+	case P_DECAY:
+		__apply_adsr_change(&p->synth, 1, (float)value);
+		break;
+	case P_SUSTAIN:
+		__apply_adsr_change(&p->synth, 2, (float)value);
+		break;
+	case P_RELEASE:
+		__apply_adsr_change(&p->synth, 3, (float)value);
+		break;
+	case P_CUTOFF:
+		p->synth.filter.cutoff = (float)value;
+		break;
+	case P_FILTER_ATTACK:
+		p->synth.filter.adsr.attack = (float)value;
+		break;
+	case P_FILTER_DECAY:
+		p->synth.filter.adsr.decay = (float)value;
+		break;
+	case P_FILTER_SUSTAIN:
+		p->synth.filter.adsr.sustain = (float)value;
+		break;
+	case P_FILTER_RELEASE:
+		p->synth.filter.adsr.release = (float)value;
+		break;
+	case P_FILTER_ENV_ON:
+		p->synth.filter.env = (bool)(int)(value);
+		break;
+	default:
+		break;
+	}
+}
 
 const param_desc_t *param_desc_from_id(clap_id id)
 {
@@ -154,6 +248,29 @@ static void params_flush(
 		if (event->space_id == CLAP_CORE_EVENT_SPACE_ID && 
 			event->type == CLAP_EVENT_PARAM_VALUE)
 				process_event(p, event);
+	}
+
+	for (clap_id id = 0; id < P_COUNT; id++)
+	{
+		if (!atomic_exchange(&p->params_dirty[id], false))
+			continue;
+		
+		float value = atomic_load(&p->params[id]);
+		apply_param_to_engine(p, id, value);
+
+		clap_event_param_value_t ev = {0};
+		ev.header.size = sizeof(ev);
+		ev.header.time = 0;
+		ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+		ev.header.type = CLAP_EVENT_PARAM_VALUE;
+		ev.param_id = id;
+		ev.cookie = NULL;
+		ev.note_id = -1;
+		ev.port_index = -1;
+		ev.channel = -1;
+		ev.key = -1;
+		ev.value = value;
+		out->try_push(out, &ev.header);
 	}
 }
 

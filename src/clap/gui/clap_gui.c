@@ -1,10 +1,23 @@
 #ifdef __CLAP__
 
 #include <string.h>
+#include <float.h> 
 
 #include "clap_lib/clap.h"
 #include "clap/clap_plugin.h"
 #include "clap/gui/clap_gui.h"
+
+static rectangle_t compute_volume_value_rec(float amp)
+{
+	return (rectangle_t)
+    {
+		.top = 10,
+		.bottom = 40,
+		.left = 10 + 70 * amp, 
+        .right = 20 + 80 * amp,
+		.border_color = GRAY, .fill_color = BLACK
+	};
+}
 
 static void plugin_paint_rec(uint32_t *bits, rectangle_t rec)
 {
@@ -23,10 +36,23 @@ static void plugin_paint_rec(uint32_t *bits, rectangle_t rec)
 	}
 }
 
+void gui_create_elements(synth_plugin_t *plugin)
+{
+	rectangle_t amp_slider_rec = 
+	{
+		10, 100, 10, 40,
+		BLACK, GRAY
+	};
+
+	plugin->gui->elements.volume_slider.rec = amp_slider_rec;
+	plugin->gui->elements.volume_slider.rec_value = compute_volume_value_rec(plugin->synth.amp);
+	plugin->gui->elements.volume_slider.param_value = plugin->synth.amp;
+}
+
 static void plugin_paint_slider(uint32_t *bits, slider_t slider)
 {
+    plugin_paint_rec(bits, slider.rec);
 	plugin_paint_rec(bits, slider.rec_value);
-	plugin_paint_rec(bits, slider.rec);
 }
 
 void plugin_paint(synth_plugin_t *plugin, uint32_t *bits) 
@@ -35,20 +61,69 @@ void plugin_paint(synth_plugin_t *plugin, uint32_t *bits)
 	{
 		.left = 0, .right = GUI_WIDTH,
 		.top = 0, .bottom = GUI_HEIGHT,
-		.border_color = 0x000000, .fill_color = 0x000000
+		.border_color = BLACK, .fill_color = BLACK
 	};
-
 	plugin_paint_rec(bits, background);
+
+    float amp = plugin->synth.amp;
 	plugin->gui->elements.volume_slider.param_value = plugin->synth.amp;
+    plugin->gui->elements.volume_slider.rec_value = compute_volume_value_rec(plugin->synth.amp);
 	plugin_paint_slider(bits, plugin->gui->elements.volume_slider);
 }
 
 void plugin_process_mouse_drag(synth_plugin_t *plugin, int x, int y)
 {
+    if (plugin->mouse.mouse_dragging)
+    {
+        float delta = (x - plugin->mouse.mouse_drag_og_x) / 100.0f;
+        float new_val = (x - 10) / 100.0f;
 
+        if (new_val < 0.0f) new_val = 0.0f;
+        if (new_val > 1.0f) new_val = 1.0f;
+
+        atomic_store(&plugin->params[P_VOLUME], new_val);
+        atomic_store(&plugin->params_dirty[P_VOLUME], true);
+
+        if (plugin->host_params && plugin->host_params->request_flush)
+            plugin->host_params->request_flush(plugin->host);
+    }
 }
-void plugin_process_mouse_press(synth_plugin_t *plugin, int x, int y) {}
-void plugin_process_mouse_release(synth_plugin_t *plugin) {}
+
+void plugin_process_mouse_press(synth_plugin_t *plugin, int x, int y)
+{
+    rectangle_t amp_rec = 
+        plugin->gui->elements.volume_slider.rec_value;
+
+    if (x >= amp_rec.left && 
+        x < amp_rec.right && 
+        y >= amp_rec.top && 
+        y < amp_rec.bottom)
+    {
+        plugin->mouse.mouse_dragging = true;
+        plugin->mouse.drag_param_id = P_VOLUME;
+        plugin->mouse.mouse_drag_og_x = x;
+        plugin->mouse.mouse_drag_og_y = y;
+        plugin->mouse.drag_param_og_val = atomic_load(&plugin->params[P_VOLUME]);
+        atomic_store(&plugin->gestures_start[plugin->mouse.drag_param_id], true);
+
+        if (plugin->host_params && plugin->host_params->request_flush)
+            plugin->host_params->request_flush(plugin->host);
+    }
+}
+
+void plugin_process_mouse_release(synth_plugin_t *plugin, int x, int y)
+{
+    rectangle_t amp_rec =
+        plugin->gui->elements.volume_slider.rec_value;
+
+    if (plugin->mouse.mouse_dragging)
+    {
+        atomic_store(&plugin->gestures_end[plugin->mouse.drag_param_id], true);
+        if (plugin->host_params && plugin->host_params->request_flush)
+            plugin->host_params->request_flush(plugin->host);
+        plugin->mouse.mouse_dragging = false;
+    }
+}
 
 /* Check wether current API is supported */
 bool is_api_supported(
@@ -65,10 +140,10 @@ bool get_prefered_api(
 	const char **api, 
 	bool *is_floating)
 {
-	(void)plugin;
-	*api = GUI_API;
-	*is_floating = false;
-	return true;
+    (void)plugin;
+    *api = GUI_API;
+    *is_floating = false;
+    return true;
 }
 
 /* Create the GUI with the OS specific creation function */

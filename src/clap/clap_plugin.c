@@ -68,6 +68,9 @@ static void synth_alocate(const clap_plugin_t *plugin)
 {
 	synth_plugin_t *p = (synth_plugin_t *)plugin->plugin_data;
 
+	/* Initialize the POSIX and HostParams extensions */
+	p->host_params = (const clap_host_params_t *)
+		p->host->get_extension(p->host, CLAP_EXT_PARAMS);
 	p->host_POSIX_support = (const clap_host_posix_fd_support_t *)
 		p->host->get_extension(p->host, CLAP_EXT_POSIX_FD_SUPPORT);
 
@@ -88,12 +91,19 @@ static void synth_alocate(const clap_plugin_t *plugin)
 	atomic_init(&p->params[P_FILTER_RELEASE], 0.0f);
 	atomic_init(&p->params[P_FILTER_ENV_ON], 0.0f);
 
+	/* Initializing gestures booleans */
+	for (uint32_t i = 0; i < P_COUNT; i++)
+	{
+		atomic_init(&p->gestures_start[i], false);
+		atomic_init(&p->gestures_end[i], false);
+		atomic_init(&p->params_dirty[i], false);
+	}
+
 	/* Low-Pass Filter */
 	p->synth.filter.cutoff = 0.5;
 	p->synth.filter.prev_input = 0.0;
 	p->synth.filter.prev_output = 0.0;
 	p->synth.filter.env = false;
-
 	p->synth.filter.adsr.attack = 0.0;
 	p->synth.filter.adsr.decay = 0.0;
 	p->synth.filter.adsr.sustain = 0.0;
@@ -168,41 +178,6 @@ static double clamp_param_value(clap_id id, double value)
 	return value;
 }
 
-/* Change the oscillators waveforms from the DAW */
-static void __apply_wave_change_to_osc(synth_t *synth, int osc, int wave)
-{
-	if (osc < 0 || osc > 2 || wave < SINE_WAVE || wave > SAWTOOTH_WAVE)
-		return;
-	for (int v = 0; v < VOICES; v++)
-		synth->voices[v].oscillators[osc].wave = wave;
-}
-
-/* Change the ADSR envelope parameters from the DAW */
-static void __apply_adsr_change(synth_t *synth, int param, float value)
-{
-	if (param < 0 || param > 4)
-		return;
-	
-	for (int v = 0; v < VOICES; v++)
-	{
-		switch (param)
-		{
-		case 0: /* Attack */
-			synth->voices[v].adsr.attack = value;
-			break;
-		case 1: /* Decay */
-			synth->voices[v].adsr.decay = value;
-			break;
-		case 2: /* Sustain */
-			synth->voices[v].adsr.sustain = value;
-			break;
-		case 3: /* Release */
-			synth->voices[v].adsr.release = value;
-			break;
-		}
-	}
-}
-
 /* Process a given CLAP event */
 /* Events can be NOTE_ON, NOTE_OFF, MIDI, or PARAM_VALUE */
 void process_event(
@@ -256,62 +231,52 @@ void process_event(
 		/* Getting the parameters, event ID and value */
 		double value = clamp_param_value(ev->param_id, ev->value);
 		atomic_store(&p->params[ev->param_id], (float)value);
-
-		switch(ev->param_id)
-		{
-		case P_VOLUME: 
-			p->synth.amp = (float)value; 
-			break;
-		case P_DETUNE: 
-			p->synth.detune = (float)value; 
-			apply_detune_change(&p->synth);
-			break;
-		case P_WAVE_A:
-			__apply_wave_change_to_osc(&p->synth, 0, (int)value);
-			break;
-		case P_WAVE_B:
-			__apply_wave_change_to_osc(&p->synth, 1, (int)value);
-			break;
-		case P_WAVE_C:
-			__apply_wave_change_to_osc(&p->synth, 2, (int)value);
-			break;
-		case P_ATTACK:
-			__apply_adsr_change(&p->synth, 0, (float)value);
-			break;
-		case P_DECAY:
-			__apply_adsr_change(&p->synth, 1, (float)value);
-			break;
-		case P_SUSTAIN:
-			__apply_adsr_change(&p->synth, 2, (float)value);
-			break;
-		case P_RELEASE:
-			__apply_adsr_change(&p->synth, 3, (float)value);
-			break;
-		case P_CUTOFF:
-			p->synth.filter.cutoff = (float)value;
-			break;
-		case P_FILTER_ATTACK:
-			p->synth.filter.adsr.attack = (float)value;
-			break;
-		case P_FILTER_DECAY:
-			p->synth.filter.adsr.decay = (float)value;
-			break;
-		case P_FILTER_SUSTAIN:
-			p->synth.filter.adsr.sustain = (float)value;
-			break;
-		case P_FILTER_RELEASE:
-			p->synth.filter.adsr.release = (float)value;
-			break;
-		case P_FILTER_ENV_ON:
-			p->synth.filter.env = (bool)(int)(value);
-			break;
-		default:
-			break;
-		}
+		apply_param_to_engine(p, ev->param_id, (float)value);
 		break;
+	}
+	case CLAP_EVENT_PARAM_MOD:
+	{
+
 	}
 	default:
 		break;
+	}
+}
+
+/* Apply gestures events */
+static void apply_gestures_events(synth_plugin_t *p, clap_output_events_t *out)
+{
+	for (uint32_t i = 0; i < P_COUNT; i++)
+	{
+		/* Sending gestures start events */
+		bool gest_start = atomic_load(&p->gestures_start[i]);
+		if (gest_start)
+		{
+			atomic_store(&p->gestures_start[i], false);
+			clap_event_param_gesture_t ev = {0};
+			ev.header.size = sizeof(ev);
+			ev.header.time = 0;
+			ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+			ev.header.type = CLAP_EVENT_PARAM_GESTURE_BEGIN;
+			ev.header.flags = 0;
+			ev.param_id = i;
+			out->try_push(out, &ev.header);
+		}
+		
+		/* Sending gestures end events */
+		bool gest_end = atomic_load(&p->gestures_end[i]);
+		if (gest_end)
+		{
+			atomic_store(&p->gestures_end[i], false);
+			clap_event_param_gesture_t ev = {0};
+			ev.header.size = sizeof(ev);
+			ev.header.time = 0;
+			ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+			ev.header.type = CLAP_EVENT_PARAM_GESTURE_END;
+			ev.header.flags = 0;
+			ev.param_id = i;
+			out->try_push(out, &ev.header);
+		}
 	}
 }
 
@@ -322,18 +287,24 @@ clap_process_status plugin_process(
 	const clap_process_t *process)
 {
 	synth_plugin_t *p = (synth_plugin_t *)plugin->plugin_data;
+
+	p->synth.amp = atomic_load(&p->params[P_VOLUME]);
 	
+	/* Frame iteration variables */
 	const uint32_t frame_count = process->frames_count;
 	const uint32_t event_count = process->in_events->size(process->in_events);
 	uint32_t event_index = 0;
 	uint32_t next_event_frame = event_count ? 0 : frame_count;
 
+	/* Get CLAP audio buffers */
 	clap_audio_buffer_t *out = &process->audio_outputs[0];
 	float *out_l = out->data32[0];
 	float *out_r = out->data32[1];
 
-	uint32_t frame = 0;
+	/* Get the GUI events */
+	apply_gestures_events(p, process->out_events);
 
+	uint32_t frame = 0;
 	while (frame < frame_count)
 	{
 		/* Process incoming CLAP events */
