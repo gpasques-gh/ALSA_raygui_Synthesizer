@@ -87,7 +87,7 @@ void gui_create_elements(synth_plugin_t *plugin);
 void plugin_paint(synth_plugin_t *plugin, uint32_t *bits);
 void plugin_process_mouse_drag(synth_plugin_t *plugin, int x, int y);
 void plugin_process_mouse_press(synth_plugin_t *plugin, int x, int y);
-void plugin_process_mouse_release(synth_plugin_t *plugin, int x, int y);
+void plugin_process_mouse_release(synth_plugin_t *plugin);
 
 #endif /* __CLAP_GUI_H__ */
 #endif /* __CLAP__*/

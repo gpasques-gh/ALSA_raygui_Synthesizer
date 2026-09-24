@@ -116,6 +116,32 @@ void apply_param_to_engine(
 	}
 }
 
+void flush_gui_params(synth_plugin_t *p, clap_output_events_t *out)
+{
+	for (clap_id id = 0; id < P_COUNT; id++)
+	{
+		if (!atomic_exchange(&p->params_dirty[id], false))
+			continue;
+		
+		float value = atomic_load(&p->params[id]);
+		apply_param_to_engine(p, id, value);
+
+		clap_event_param_value_t ev = {0};
+		ev.header.size = sizeof(ev);
+		ev.header.time = 0;
+		ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+		ev.header.type = CLAP_EVENT_PARAM_VALUE;
+		ev.param_id = id;
+		ev.cookie = NULL;
+		ev.note_id = -1;
+		ev.port_index = -1;
+		ev.channel = -1;
+		ev.key = -1;
+		ev.value = value;
+		out->try_push(out, &ev.header);
+	}
+}
+
 const param_desc_t *param_desc_from_id(clap_id id)
 {
 	return id < P_COUNT ? &PARAMS[id] : NULL;
@@ -248,29 +274,6 @@ static void params_flush(
 		if (event->space_id == CLAP_CORE_EVENT_SPACE_ID && 
 			event->type == CLAP_EVENT_PARAM_VALUE)
 				process_event(p, event);
-	}
-
-	for (clap_id id = 0; id < P_COUNT; id++)
-	{
-		if (!atomic_exchange(&p->params_dirty[id], false))
-			continue;
-		
-		float value = atomic_load(&p->params[id]);
-		apply_param_to_engine(p, id, value);
-
-		clap_event_param_value_t ev = {0};
-		ev.header.size = sizeof(ev);
-		ev.header.time = 0;
-		ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
-		ev.header.type = CLAP_EVENT_PARAM_VALUE;
-		ev.param_id = id;
-		ev.cookie = NULL;
-		ev.note_id = -1;
-		ev.port_index = -1;
-		ev.channel = -1;
-		ev.key = -1;
-		ev.value = value;
-		out->try_push(out, &ev.header);
 	}
 }
 

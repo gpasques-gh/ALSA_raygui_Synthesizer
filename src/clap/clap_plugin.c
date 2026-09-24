@@ -234,10 +234,6 @@ void process_event(
 		apply_param_to_engine(p, ev->param_id, (float)value);
 		break;
 	}
-	case CLAP_EVENT_PARAM_MOD:
-	{
-
-	}
 	default:
 		break;
 	}
@@ -249,10 +245,8 @@ static void apply_gestures_events(synth_plugin_t *p, clap_output_events_t *out)
 	for (uint32_t i = 0; i < P_COUNT; i++)
 	{
 		/* Sending gestures start events */
-		bool gest_start = atomic_load(&p->gestures_start[i]);
-		if (gest_start)
+		if (atomic_exchange(&p->gestures_start[i], false))
 		{
-			atomic_store(&p->gestures_start[i], false);
 			clap_event_param_gesture_t ev = {0};
 			ev.header.size = sizeof(ev);
 			ev.header.time = 0;
@@ -264,10 +258,8 @@ static void apply_gestures_events(synth_plugin_t *p, clap_output_events_t *out)
 		}
 		
 		/* Sending gestures end events */
-		bool gest_end = atomic_load(&p->gestures_end[i]);
-		if (gest_end)
+		if (atomic_exchange(&p->gestures_end[i], false))
 		{
-			atomic_store(&p->gestures_end[i], false);
 			clap_event_param_gesture_t ev = {0};
 			ev.header.size = sizeof(ev);
 			ev.header.time = 0;
@@ -287,8 +279,6 @@ clap_process_status plugin_process(
 	const clap_process_t *process)
 {
 	synth_plugin_t *p = (synth_plugin_t *)plugin->plugin_data;
-
-	p->synth.amp = atomic_load(&p->params[P_VOLUME]);
 	
 	/* Frame iteration variables */
 	const uint32_t frame_count = process->frames_count;
@@ -302,6 +292,7 @@ clap_process_status plugin_process(
 	float *out_r = out->data32[1];
 
 	/* Get the GUI events */
+	flush_gui_params(p, process->out_events);
 	apply_gestures_events(p, process->out_events);
 
 	uint32_t frame = 0;

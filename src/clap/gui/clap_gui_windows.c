@@ -5,8 +5,6 @@
 #include "clap/gui/clap_gui_windows.h"
 #include "clap/clap_plugin.h"
 
-
-
 static int global_open_gui_count = 0;
 
 static void gui_paint(synth_plugin_t *plugin, bool internal)
