@@ -2,7 +2,9 @@
 
 #include <stdint.h>
 
+#define __NO_RL__
 #include "defs.h"
+#undef __NO_RL__
 #include "core/synth.h"
 #include "standalone/midi.h"
 

@@ -1,6 +1,8 @@
 #ifndef __CLAP__
 
+#define __NO_RL__
 #include "defs.h"
+#undef __NO_RL__
 #include "standalone/record.h"
 
 /* Initialize wav header */

@@ -21,16 +21,15 @@ and Windows API working together */
 #undef DrawTextEx
 #undef PlaySound
 
-#include "raylib/src/raylib.h"
-#include "raylib/src/raygui.h"
-
 #elif defined(__LINUX__)
 #include <libxml2/libxml/parser.h>
 #include <libxml2/libxml/tree.h>
-#include <raygui.h>
 #endif
 
+#include "lib_raygui/src/raygui.h"
+#define __NO_RL__
 #include "defs.h"
+#undef __NO_RL__
 #include "standalone/xml.h"
 
 /*

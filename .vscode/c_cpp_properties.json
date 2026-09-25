@@ -4,6 +4,10 @@
             "name": "Linux",
             "compileCommands":
                 "${workspaceFolder}/.vscode/compile_commands.linux.json",
+            "includePath": [
+                "external/",
+                "include/"
+            ],
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "linux-gcc-x64"
@@ -12,20 +16,33 @@
             "name": "Win32",
             "compileCommands":
                 "${workspaceFolder}/.vscode/compile_commands.win32.json",
+            "includePath": [
+                "external/",
+                "include/"
+            ],
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "windows-gcc-x64"
         },
         {
-            "name": "CLAP",
+            "name": "CLAP_Win32",
+            "compileCommands":
+                "${workspaceFolder}/.vscode/compile_commands.clap.win32.json",
             "includePath": [
                 "external/",
                 "include/"
             ],
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64"        
+        },
+        {
+            "name": "CLAP_Linux",
             "compileCommands":
-                "${workspaceFolder}/.vscode/compile_commands.win32.json",
-            "defines": [
-                "__CLAP__"
+                "${workspaceFolder}/.vscode/compile_commands.clap.linux.json",
+            "includePath": [
+                "external/",
+                "include/"
             ],
             "cStandard": "c17",
             "cppStandard": "c++17",

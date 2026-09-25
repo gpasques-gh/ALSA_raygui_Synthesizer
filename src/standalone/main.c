@@ -1,12 +1,14 @@
 #ifndef __CLAP__
 
+
+#ifdef __WINDOWS__
+#include "standalone/win_defs.h"
+#endif 
+
 #define RAYGUI_IMPLEMENTATION
 #include "lib_raygui/src/raygui.h"
 
 #ifdef __WINDOWS__
-
-#include "standalone/win_defs.h"
-
 #include <windows.h>
 
 #ifdef NOGDI
@@ -36,7 +38,6 @@ typedef struct tagBITMAPINFOHEADER {
 #include <stdatomic.h>
 #include <unistd.h>
 #include <alsa/asoundlib.h>
-#include <raygui.h>
 
 #endif
 

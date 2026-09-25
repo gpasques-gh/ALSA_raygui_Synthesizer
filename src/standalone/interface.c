@@ -10,7 +10,9 @@
 #include <windows.h>
 #endif 
 
+#define __NO_RL__
 #include "defs.h"
+#undef __NO_RL__
 #include "standalone/interface.h"
 #include "core/synth.h"
 
