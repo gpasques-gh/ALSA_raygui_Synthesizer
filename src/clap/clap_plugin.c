@@ -45,7 +45,6 @@ const clap_plugin_descriptor_t __descriptor =
 	.features = __features
 };
 
-
 /* Free the synthesizer */
 static void synth_free(const clap_plugin_t *plugin)
 {
@@ -64,9 +63,14 @@ static void synth_free(const clap_plugin_t *plugin)
 }
 
 /* Allocate the synthesizer from the plugin */
-static void synth_alocate(const clap_plugin_t *plugin)
+static int synth_alocate(const clap_plugin_t *plugin)
 {
 	synth_plugin_t *p = (synth_plugin_t *)plugin->plugin_data;
+
+	/* Polyphonic Synthesizer */
+	p->synth.voices = malloc(sizeof(voice_t) * VOICES);
+	if (!p->synth.voices)
+		return 1;
 
 	/* Initialize the POSIX and HostParams extensions */
 	p->host_params = (const clap_host_params_t *)
@@ -112,14 +116,7 @@ static void synth_alocate(const clap_plugin_t *plugin)
 	p->synth.filter.adsr.state = ENV_IDLE;
 	p->synth.filter.adsr.type = ENV_TYPE_FILTER;
 
-	/* Low Frequency Oscillator */
-	p->synth.lfo.osc.freq = 0.5;
-	p->synth.lfo.osc.phase = 0.0;
-	p->synth.lfo.osc.wave = SINE_WAVE;
-	p->synth.lfo.mod_param = LFO_OFF;
-	
-	/* Polyphonic Synthesizer */
-	p->synth.voices = malloc(sizeof(voice_t) * VOICES);
+	/* Miscellanous synthesizer parameters */
 	p->synth.amp = DEFAULT_AMPLITUDE;
 	p->synth.detune = 0.0;
 	p->synth.arp = false;
@@ -127,8 +124,11 @@ static void synth_alocate(const clap_plugin_t *plugin)
 	p->synth.active_arp_float = 1.0;
 	p->synth.bpm = 150.0;
 
-	if (p->synth.voices == NULL)
-		return;
+	/* Low Frequency Oscillator */
+	p->synth.lfo.osc.freq = 0.5;
+	p->synth.lfo.osc.phase = 0.0;
+	p->synth.lfo.osc.wave = SINE_WAVE;
+	p->synth.lfo.mod_param = LFO_OFF;
 
 	/* Create the synthesizer voices */
 	for (int i = 0; i < VOICES; i++)
@@ -149,7 +149,7 @@ static void synth_alocate(const clap_plugin_t *plugin)
 		/* Allocating the oscillators */
 		p->synth.voices[i].oscillators = malloc(sizeof(osc_t) * 3);
 		if (p->synth.voices[i].oscillators == NULL)
-			return;
+			return 1;
 
 		for (int j = 0; j < 3; j++)
 		{
@@ -161,6 +161,8 @@ static void synth_alocate(const clap_plugin_t *plugin)
 		p->synth.voices[i].oscillators[1].wave = SINE_WAVE;
 		p->synth.voices[i].oscillators[2].wave = SINE_WAVE;
 	}
+
+	return 0;
 }
 
 /* Clamp the parameter value by its minimum and maximum */
@@ -229,9 +231,12 @@ void process_event(
 			(const clap_event_param_value_t *)hdr;
 	
 		/* Getting the parameters, event ID and value */
-		double value = clamp_param_value(ev->param_id, ev->value);
-		atomic_store(&p->params[ev->param_id], (float)value);
-		apply_param_to_engine(p, ev->param_id, (float)value);
+		if (ev->param_id < P_COUNT)
+		{
+			double value = clamp_param_value(ev->param_id, ev->value);
+			atomic_store(&p->params[ev->param_id], (float)value);
+			apply_param_to_engine(p, ev->param_id, (float)value);
+		}
 		break;
 	}
 	default:
@@ -339,8 +344,11 @@ clap_process_status plugin_process(
 /* Initialize the plugin */
 bool plugin_init(const clap_plugin_t *plugin) 
 {
-	synth_alocate(plugin);
-	return true; 
+	int res = synth_alocate(plugin);
+	if (res == 0)
+		return true;
+	else
+		return false;
 }
 
 /* Destroy the plugin */
