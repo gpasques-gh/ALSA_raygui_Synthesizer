@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "clap_lib/clap.h"
+#include "lib_clap/include/clap/clap.h"
 #include "clap/clap_note_ports.h"
 
 uint32_t note_ports_count(

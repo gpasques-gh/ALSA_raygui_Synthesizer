@@ -1,0 +1,12 @@
+[submodule "external/lib_raylib"]
+	path = external/lib_raylib
+	url = https://github.com/raysan5/raylib.git
+[submodule "external/lib_clap"]
+	path = external/lib_clap
+	url = https://github.com/free-audio/clap.git
+[submodule "external/lib_raygui"]
+	path = external/lib_raygui
+	url = https://github.com/raysan5/raygui.git
+[submodule "external/lib_stb"]
+	path = external/lib_stb
+	url = https://github.com/nothings/stb.git

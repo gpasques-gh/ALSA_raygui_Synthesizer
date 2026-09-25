@@ -3,7 +3,7 @@
 
 #ifdef __CLAP__
 
-#include "clap_lib/clap.h"
+#include "lib_clap/include/clap/clap.h"
 
 uint32_t audio_ports_count(
 	const clap_plugin_t *plugin, 

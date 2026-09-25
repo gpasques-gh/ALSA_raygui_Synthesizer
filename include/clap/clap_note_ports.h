@@ -3,7 +3,7 @@
 
 #ifdef __CLAP__
 
-#include "clap_lib/clap.h"
+#include "lib_clap/include/clap/clap.h"
 
 /* Function declarations */
 uint32_t note_ports_count(

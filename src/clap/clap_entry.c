@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "clap_lib/clap.h"
+#include "lib_clap/include/clap/clap.h"
 #include "clap/clap_entry.h"
 #include "clap/clap_factory.h"
 

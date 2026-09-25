@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "clap_lib/clap.h"
+#include "lib_clap/include/clap/clap.h"
 #include "clap/clap_factory.h"
 #include "clap/clap_plugin.h"
 

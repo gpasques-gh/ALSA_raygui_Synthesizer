@@ -5,5 +5,3 @@ compile_commands.json
 .cache/
 presets/
 audio/
-external/libxml
-external/raylib

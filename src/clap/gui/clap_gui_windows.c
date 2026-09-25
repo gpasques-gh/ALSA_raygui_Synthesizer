@@ -1,6 +1,6 @@
 #ifdef _WIN32
 
-#include "clap_lib/clap.h"
+#include "lib_clap/include/clap/clap.h"
 #include "clap/gui/clap_gui.h"
 #include "clap/gui/clap_gui_windows.h"
 #include "clap/clap_plugin.h"

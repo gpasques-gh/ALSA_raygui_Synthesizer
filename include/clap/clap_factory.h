@@ -3,7 +3,7 @@
 
 #ifdef __CLAP__
 
-#include "clap_lib/clap.h"
+#include "lib_clap/include/clap/clap.h"
 
 /* Plugin factory */
 const clap_plugin_t *create_plugin_instance(

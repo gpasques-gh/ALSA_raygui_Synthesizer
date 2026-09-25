@@ -9,13 +9,13 @@
 #define IN_REC(x, y, rec) (x >= (rec.left) && x < (rec.right) && y >= (rec.top) && y < (rec.bottom))
 #define PATH_MAX 40
 
-#include "clap_lib/clap.h"
+#include "lib_clap/include/clap/clap.h"
 #include "clap/clap_plugin.h"
 #include "clap/gui/clap_gui.h"
 
 /* Font headers */
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb/stb_truetype.h"
+#include "lib_stb/stb_truetype.h"
 #include "clap_assets/regular_font.h"
 
 /* Font structure */

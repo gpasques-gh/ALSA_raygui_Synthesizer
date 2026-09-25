@@ -2,12 +2,12 @@
 
 #include <stdio.h>
 
+#include "lib_raylib/src/raylib.h"
+#include "lib_raygui/src/raygui.h"
+
 #ifdef __WINDOWS__
-#include "raylib/src/raygui.h"
 #include "standalone/win_defs.h"
 #include <windows.h>
-#elif defined(__LINUX__)
-#include <raygui.h>
 #endif 
 
 #include "defs.h"

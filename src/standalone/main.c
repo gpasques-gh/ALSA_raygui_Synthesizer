@@ -1,11 +1,12 @@
 #ifndef __CLAP__
 
 #define RAYGUI_IMPLEMENTATION
+#include "lib_raygui/src/raygui.h"
 
 #ifdef __WINDOWS__
 
 #include "standalone/win_defs.h"
-#include "raylib/src/raygui.h"
+
 #include <windows.h>
 
 #ifdef NOGDI

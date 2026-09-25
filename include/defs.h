@@ -2,11 +2,9 @@
 #define DEFS_H
 
 #ifndef __CLAP__
-#if defined(__WINDOWS__) && !defined(__NO_RL__)
-#include "raylib/src/raylib.h"
-#elif defined(__LINUX__)
-#include <raylib.h>
-#endif /* OS */
+#if !defined(__NO_RL__)
+#include "lib_raylib/src/raylib.h"
+#endif /* NO RAYLIB */
 #endif /* __CLAP__ */
 
 #include <stdio.h>

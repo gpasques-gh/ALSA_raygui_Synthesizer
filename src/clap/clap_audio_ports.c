@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "clap_lib/clap.h"
+#include "lib_clap/include/clap/clap.h"
 #include "clap/clap_audio_ports.h"
 
 uint32_t audio_ports_count(

@@ -18,8 +18,15 @@
         },
         {
             "name": "CLAP",
-            "compileCommands": 
-                "${workspaceFolder}/.vscode/compile_commands.clap.json",
+            "includePath": [
+                "external/",
+                "include/"
+            ],
+            "compileCommands":
+                "${workspaceFolder}/.vscode/compile_commands.win32.json",
+            "defines": [
+                "__CLAP__"
+            ],
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-x64"        
