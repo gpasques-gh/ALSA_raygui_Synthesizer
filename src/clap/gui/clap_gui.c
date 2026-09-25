@@ -13,6 +13,7 @@
 #include "clap/clap_plugin.h"
 #include "clap/gui/clap_gui.h"
 
+/* Font headers */
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb/stb_truetype.h"
 #include "clap_assets/regular_font.h"
@@ -27,6 +28,7 @@ typedef struct
 
 static gui_font_t __font = {0};
 
+/* Load font from asset header */
 int gui_load_font_mem(const unsigned char *ttf_data)
 {
 	__font.ttf_buffer = NULL;
@@ -36,6 +38,15 @@ int gui_load_font_mem(const unsigned char *ttf_data)
 	return __font.loaded;
 }
 
+/* Free the font structure */
+static void gui_font_free(void)
+{
+	free(__font.ttf_buffer);
+	__font.ttf_buffer = NULL;
+	__font.loaded = 0;
+}
+
+/* Basic RGB blending function */
 static void blend_pixel(
 	uint32_t *bits, 
 	int x, int y,
@@ -62,6 +73,7 @@ static void blend_pixel(
 	*dst = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
 }
 
+/* Paint text to the bitmap using STB TrueType library */
 static void plugin_paint_text(
 	uint32_t *bits, 
 	int x, int y, 
@@ -72,25 +84,29 @@ static void plugin_paint_text(
 	if (!__font.loaded)
 		return;
 
-	float scale = stbtt_ScaleForPixelHeight(&__font.info, px_size);
-
+	float scale = 
+		stbtt_ScaleForPixelHeight(&__font.info, px_size);
 	int ascent;
 	stbtt_GetFontVMetrics(&__font.info, &ascent, NULL, NULL);
 	int baseline = (int)(ascent * scale);
 	float xpos = (float)x;
 
+	/* Loop through the text data */
 	for (const char *p = text; *p; p++)
 	{
+		/* Get the local bitmap of the current letter */
 		int w, h, xoff, yoff;
 		unsigned char *bitmap = stbtt_GetCodepointBitmap(
 			&__font.info, 0, scale, *p, &w, &h, &xoff, &yoff);
 		
 		if (bitmap)
 		{
+			/* Draw pixels on the GUI bitmap */
 			for (int j = 0; j < h; j++)
 			{
 				for (int i = 0; i < w; i++)
 				{
+					/* Blend the bitmap pixel with the font bixel */
 					uint8_t alpha = bitmap[j * w + i];
 					blend_pixel(
 						bits,
@@ -99,25 +115,38 @@ static void plugin_paint_text(
 						color, alpha);
 				}
 			}
+
+			/* Free the local bitmap */
 			stbtt_FreeBitmap(bitmap, NULL);
 		}
 
+		/* Advance to the next font letter */
 		int advance;
 		stbtt_GetCodepointHMetrics(&__font.info, *p, &advance, NULL);
 		xpos += advance * scale;
-
 		if (p[1])
-			xpos += scale * stbtt_GetCodepointKernAdvance(&__font.info, p[0], p[1]);
+			xpos += scale * 
+				stbtt_GetCodepointKernAdvance(&__font.info, p[0], p[1]);
 	}
 }
 
-static void gui_font_free(void)
+/* Paint a rectangle to the bitmap */
+static void plugin_paint_rec(uint32_t *bits, rectangle_t rec)
 {
-	free(__font.ttf_buffer);
-	__font.ttf_buffer = NULL;
-	__font.loaded = 0;
+	for (uint32_t y = rec.top; y < rec.bottom; y++)
+	{
+		for (uint32_t x = rec.left; x < rec.right; x++)
+		{
+			bits[y * GUI_WIDTH + x] =  (
+				y == rec.top || 
+				y == rec.bottom - 1 || 
+				x == rec.left ||
+				x == rec.right - 1)
+					? rec.border_color
+					: rec.fill_color;
+		}
+	}
 }
-
 
 /* Send which param corresponds to a XY pos on the GUI */
 static uint32_t get_param_gui(
@@ -154,6 +183,7 @@ static uint32_t get_param_gui(
 	rectangle_t cutoff = 
 		elements.cutoff_slider.rec_value;
 
+	/* Return the parameter ID from XY position */
 	if (IN_REC(x, y, amp))
 		return P_VOLUME;
 	if (IN_REC(x, y, attack))
@@ -178,23 +208,7 @@ static uint32_t get_param_gui(
 	return P_COUNT;
 } 
 
-static void plugin_paint_rec(uint32_t *bits, rectangle_t rec)
-{
-	for (uint32_t y = rec.top; y < rec.bottom; y++)
-	{
-		for (uint32_t x = rec.left; x < rec.right; x++)
-		{
-			bits[y * GUI_WIDTH + x] =  (
-				y == rec.top || 
-				y == rec.bottom - 1 || 
-				x == rec.left ||
-				x == rec.right - 1)
-					? rec.border_color
-					: rec.fill_color;
-		}
-	}
-}
-
+/* Get slider rectangle from parameter ID */
 static rectangle_t get_slider_rec(gui_elements_t elements, uint32_t param_id)
 {
 	switch (param_id)
@@ -213,6 +227,9 @@ static rectangle_t get_slider_rec(gui_elements_t elements, uint32_t param_id)
 	}
 }
 
+/* SLIDERS IMPLEMENTATION */
+
+/* Compute the horizontal slider cursor rectangle position */
 static rectangle_t compute_horizontal_slider_rec(
 	rectangle_t main_rec, uint32_t width,
 	float value, float max)
@@ -232,10 +249,17 @@ static rectangle_t compute_horizontal_slider_rec(
 	};
 }
 
+/* Paint a slider to the GUI bitmap */
+static void plugin_paint_slider(uint32_t *bits, slider_t slider)
+{
+	plugin_paint_rec(bits, slider.rec);
+	plugin_paint_rec(bits, slider.rec_value);
+}
+
+/* Create the elements of the GUI, called in gui_create */
 void gui_create_elements(synth_plugin_t *plugin)
 {
-	/* Read the parameter store used by both the host and the GUI. The audio
-	 * thread may not have copied a newly changed parameter into synth yet. */
+	/* Atomic read of the parameters */
 	float amp = atomic_load(&plugin->params[P_VOLUME]);
 	float attack = atomic_load(&plugin->params[P_ATTACK]);
 	float decay = atomic_load(&plugin->params[P_DECAY]);
@@ -317,18 +341,28 @@ void gui_create_elements(synth_plugin_t *plugin)
 		compute_horizontal_slider_rec(cutoff_rec, 20, cutoff, 1.0f);
 	plugin->gui->elements.cutoff_slider.param_value = cutoff;
 
+	/* Load the font from the asset header */
 	gui_load_font_mem(__embedded_font);
 }
 
-static void plugin_paint_slider(uint32_t *bits, slider_t slider)
+/* Update slider position with the new  parameter data */
+static void update_slider(slider_t *slider, uint32_t width, float new_val, float val_max)
 {
-	plugin_paint_rec(bits, slider.rec);
-	plugin_paint_rec(bits, slider.rec_value);
+	if (slider->param_value != new_val)
+	{
+		slider->param_value = new_val;
+		slider->rec_value = 
+			compute_horizontal_slider_rec(
+				slider->rec, width, new_val, val_max);
+	}
 }
 
+/* Update slider position with the parameter data */
+/* Updates even if the data is changed from 
+the parameter view of the host and not the GUI view*/
 static void update_sliders(synth_plugin_t *p)
 {
-	/* Get the new data */
+	/* Get the new data*/
 	float amp = atomic_load(&p->params[P_VOLUME]);
 	float attack = atomic_load(&p->params[P_ATTACK]);
 	float decay = atomic_load(&p->params[P_DECAY]);
@@ -341,74 +375,20 @@ static void update_sliders(synth_plugin_t *p)
 	float cutoff = atomic_load(&p->params[P_CUTOFF]);
 
 	/* Update the volume slider */
-	p->gui->elements.volume_slider.param_value = amp;
-	p->gui->elements.volume_slider.rec_value =
-		compute_horizontal_slider_rec(
-			p->gui->elements.volume_slider.rec, 20,
-			amp, 1.0f);
+	update_slider(&p->gui->elements.volume_slider, 20, amp, 1.0f);
 
-	/* Update the attack slider */
-	p->gui->elements.adsr_sliders[0].param_value = attack;
-	p->gui->elements.adsr_sliders[0].rec_value =
-		compute_horizontal_slider_rec(
-			p->gui->elements.adsr_sliders[0].rec, 20,
-			attack, 2.0f);
+	/* Update ADSR envelope sliders */
+	update_slider(&p->gui->elements.adsr_sliders[0], 20, attack, 2.0f);
+	update_slider(&p->gui->elements.adsr_sliders[1], 20, decay, 2.0f);
+	update_slider(&p->gui->elements.adsr_sliders[2], 20, sustain, 1.0f);
+	update_slider(&p->gui->elements.adsr_sliders[3], 20, release, 2.0f);
 
-	/* Update the decay slider */
-	p->gui->elements.adsr_sliders[1].param_value = decay;
-	p->gui->elements.adsr_sliders[1].rec_value =
-		compute_horizontal_slider_rec(
-			p->gui->elements.adsr_sliders[1].rec, 20,
-			decay, 2.0f);
-
-	/* Update the sustain slider */
-	p->gui->elements.adsr_sliders[2].param_value = sustain;
-	p->gui->elements.adsr_sliders[2].rec_value =
-		compute_horizontal_slider_rec(
-			p->gui->elements.adsr_sliders[2].rec, 20,
-			sustain, 1.0f);
-
-	/* Update the release slider */
-	p->gui->elements.adsr_sliders[3].param_value = release;
-	p->gui->elements.adsr_sliders[3].rec_value =
-		compute_horizontal_slider_rec(
-			p->gui->elements.adsr_sliders[3].rec, 20,
-			release, 2.0f);
-
-	/* Update the filter attack slider */
-	p->gui->elements.filter_adsr_sliders[0].param_value = f_attack;
-	p->gui->elements.filter_adsr_sliders[0].rec_value =
-		compute_horizontal_slider_rec(
-			p->gui->elements.filter_adsr_sliders[0].rec, 20,
-			f_attack, 2.0f);
-
-	/* Update the filter decay slider */
-	p->gui->elements.filter_adsr_sliders[1].param_value = f_decay;
-	p->gui->elements.filter_adsr_sliders[1].rec_value =
-		compute_horizontal_slider_rec(
-			p->gui->elements.filter_adsr_sliders[1].rec, 20,
-			f_decay, 2.0f);
-
-	/* Update the filter sustain slider */
-	p->gui->elements.filter_adsr_sliders[2].param_value = f_sustain;
-	p->gui->elements.filter_adsr_sliders[2].rec_value =
-		compute_horizontal_slider_rec(
-			p->gui->elements.filter_adsr_sliders[2].rec, 20,
-			f_sustain, 1.0f);
-
-	/* Update the filter release slider */
-	p->gui->elements.filter_adsr_sliders[3].param_value = f_release;
-	p->gui->elements.filter_adsr_sliders[3].rec_value =
-		compute_horizontal_slider_rec(
-			p->gui->elements.filter_adsr_sliders[3].rec, 20,
-			f_release, 2.0f);
-
-	/* Update the cutoff slider */
-	p->gui->elements.cutoff_slider.param_value = cutoff;
-	p->gui->elements.cutoff_slider.rec_value =
-		compute_horizontal_slider_rec(
-			p->gui->elements.cutoff_slider.rec, 20,
-			cutoff, 1.0f);
+	/* Update filter parameters sliders */
+	update_slider(&p->gui->elements.filter_adsr_sliders[0], 20, f_attack, 2.0f);
+	update_slider(&p->gui->elements.filter_adsr_sliders[1], 20, f_decay, 2.0f);
+	update_slider(&p->gui->elements.filter_adsr_sliders[2], 20, f_sustain, 1.0f);
+	update_slider(&p->gui->elements.filter_adsr_sliders[3], 20, f_release, 2.0f);
+	update_slider(&p->gui->elements.cutoff_slider, 20, cutoff, 1.0f);
 }
 void plugin_paint(synth_plugin_t *plugin, uint32_t *bits) 
 {
@@ -442,6 +422,9 @@ void plugin_paint(synth_plugin_t *plugin, uint32_t *bits)
 	plugin_paint_slider(bits, plugin->gui->elements.cutoff_slider);
 }
 
+/* MOUSE GESTURES */
+
+/* Mouse drag function, used for sliders */
 void plugin_process_mouse_drag(synth_plugin_t *plugin, int x, int y)
 {
 	(void)y;
@@ -472,6 +455,7 @@ void plugin_process_mouse_drag(synth_plugin_t *plugin, int x, int y)
 	}
 }
 
+/* Mouse press handling, starting drag if we are on a slider */
 void plugin_process_mouse_press(synth_plugin_t *plugin, int x, int y)
 {
 	uint32_t param_id = get_param_gui(plugin->gui->elements, x, y);
@@ -489,6 +473,7 @@ void plugin_process_mouse_press(synth_plugin_t *plugin, int x, int y)
 	}
 }
 
+/* Mouse release handling */
 void plugin_process_mouse_release(synth_plugin_t *plugin)
 {
 	if (plugin->mouse.mouse_dragging)
@@ -499,6 +484,8 @@ void plugin_process_mouse_release(synth_plugin_t *plugin)
 		plugin->mouse.mouse_dragging = false;
 	}
 }
+
+/* EXTENSIONS FUNCTIONS */
 
 /* Check wether current API is supported */
 bool is_api_supported(
@@ -610,6 +597,7 @@ bool hide(const clap_plugin_t *plugin)
 	return true;
 }
 
+/* CLAP GUI extension */
 const clap_plugin_gui_t gui_ext =
 {
 	.is_api_supported = is_api_supported,
