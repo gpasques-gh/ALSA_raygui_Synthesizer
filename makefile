@@ -7,6 +7,7 @@ TARGET = synth
 # Directories
 SRC_DIR = src
 INC_DIR = include
+ASSETS_DIR = assets 
 BIN_DIR = bin
 OBJ_DIR = obj
 
@@ -24,7 +25,7 @@ else
 endif
 
 # Common flags 
-CFLAGS = -Wall -Wextra -O2 -I$(INC_DIR) -MMD -MP
+CFLAGS = -Wall -Wextra -O2 -I$(INC_DIR) -I$(ASSETS_DIR) -MMD -MP
 LDFLAGS =
 
 # OS specific flags

@@ -2,12 +2,122 @@
 
 #include <string.h>
 #include <float.h> 
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#define IN_REC(x, y, rec) (x >= (rec.left) && x < (rec.right) && y >= (rec.top) && y < (rec.bottom))
+#define PATH_MAX 40
 
 #include "clap_lib/clap.h"
 #include "clap/clap_plugin.h"
 #include "clap/gui/clap_gui.h"
 
-#define IN_REC(x, y, rec) (x >= (rec.left) && x < (rec.right) && y >= (rec.top) && y < (rec.bottom))
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb/stb_truetype.h"
+#include "clap_assets/regular_font.h"
+
+/* Font structure */
+typedef struct 
+{
+	uint8_t *ttf_buffer;
+	stbtt_fontinfo info;
+	int loaded;
+} gui_font_t;
+
+static gui_font_t __font = {0};
+
+int gui_load_font_mem(const unsigned char *ttf_data)
+{
+	__font.ttf_buffer = NULL;
+	__font.loaded = stbtt_InitFont(
+		&__font.info, ttf_data,
+		stbtt_GetFontOffsetForIndex(ttf_data, 0));
+	return __font.loaded;
+}
+
+static void blend_pixel(
+	uint32_t *bits, 
+	int x, int y,
+	uint32_t color, uint8_t alpha)
+{
+	if (x < 0 || y  < 0 || x >= GUI_WIDTH || y >= GUI_HEIGHT || alpha == 0)
+		return;
+
+	/* Get source and destination RGBs */
+	uint32_t *dst = &bits[y * GUI_WIDTH + x];
+	uint8_t sr = (uint8_t )(color >> 16);
+	uint8_t sg = (uint8_t)(color >> 8);
+	uint8_t sb = (uint8_t)(color);
+	uint8_t dr = (uint8_t)(*dst >> 16);
+	uint8_t dg = (uint8_t)(*dst >> 8);
+	uint8_t db = (uint8_t)(*dst);
+
+	/* Get blended RBG */
+	uint8_t r = (uint8_t)((sr * alpha + dr * (255 - alpha)) / 255);
+	uint8_t g = (uint8_t)((sg * alpha + dg * (255 - alpha)) / 255);
+	uint8_t b = (uint8_t)((sb * alpha + db * (255 - alpha)) / 255);
+
+	/* Blend the pixel */
+	*dst = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+}
+
+static void plugin_paint_text(
+	uint32_t *bits, 
+	int x, int y, 
+	const char *text, 
+	float px_size, 
+	uint32_t color)
+{
+	if (!__font.loaded)
+		return;
+
+	float scale = stbtt_ScaleForPixelHeight(&__font.info, px_size);
+
+	int ascent;
+	stbtt_GetFontVMetrics(&__font.info, &ascent, NULL, NULL);
+	int baseline = (int)(ascent * scale);
+	float xpos = (float)x;
+
+	for (const char *p = text; *p; p++)
+	{
+		int w, h, xoff, yoff;
+		unsigned char *bitmap = stbtt_GetCodepointBitmap(
+			&__font.info, 0, scale, *p, &w, &h, &xoff, &yoff);
+		
+		if (bitmap)
+		{
+			for (int j = 0; j < h; j++)
+			{
+				for (int i = 0; i < w; i++)
+				{
+					uint8_t alpha = bitmap[j * w + i];
+					blend_pixel(
+						bits,
+						(int)xpos + xoff +i,
+						y + baseline + yoff + j,
+						color, alpha);
+				}
+			}
+			stbtt_FreeBitmap(bitmap, NULL);
+		}
+
+		int advance;
+		stbtt_GetCodepointHMetrics(&__font.info, *p, &advance, NULL);
+		xpos += advance * scale;
+
+		if (p[1])
+			xpos += scale * stbtt_GetCodepointKernAdvance(&__font.info, p[0], p[1]);
+	}
+}
+
+static void gui_font_free(void)
+{
+	free(__font.ttf_buffer);
+	__font.ttf_buffer = NULL;
+	__font.loaded = 0;
+}
+
 
 /* Send which param corresponds to a XY pos on the GUI */
 static uint32_t get_param_gui(
@@ -206,6 +316,8 @@ void gui_create_elements(synth_plugin_t *plugin)
 	plugin->gui->elements.cutoff_slider.rec_value = 
 		compute_horizontal_slider_rec(cutoff_rec, 20, cutoff, 1.0f);
 	plugin->gui->elements.cutoff_slider.param_value = cutoff;
+
+	gui_load_font_mem(__embedded_font);
 }
 
 static void plugin_paint_slider(uint32_t *bits, slider_t slider)
@@ -312,6 +424,8 @@ void plugin_paint(synth_plugin_t *plugin, uint32_t *bits)
 	update_sliders(plugin);
 
 	/* Painting amplification slider */
+	if (__font.loaded)
+		plugin_paint_text(plugin->gui->bits, 400, 300, "Volume", 10, GRAY);
 	plugin_paint_slider(bits, plugin->gui->elements.volume_slider);
 
 	/* Painting ADSR sliders */

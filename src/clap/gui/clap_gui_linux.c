@@ -50,7 +50,7 @@ static void gui_X11_process_event(synth_plugin_t *plugin, XEvent *event)
     {
         if (event->xbutton.window == plugin->gui->window && event->xbutton.button == 1)
         {
-            plugin_process_mouse_release(plugin, event->xbutton.x, event->xbutton.y);
+            plugin_process_mouse_release(plugin);
             XUngrabPointer(plugin->gui->display, CurrentTime);
         }
     }
