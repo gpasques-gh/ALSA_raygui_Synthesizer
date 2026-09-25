@@ -5,3 +5,5 @@ compile_commands.json
 .cache/
 presets/
 audio/
+external/.submodules-initialized
+.vscode/compile_commands*

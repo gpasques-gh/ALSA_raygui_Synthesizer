@@ -1,0 +1,20 @@
+#ifndef __CLAP_WRAPPER_H__
+#define __CLAP_WRAPPER_H__
+
+#ifdef __CLAP__
+
+#include "lib_clap/include/clap/clap.h"
+
+uint32_t audio_ports_count(
+	const clap_plugin_t *plugin, 
+	bool is_input);
+
+bool audio_ports_get(
+	const clap_plugin_t *plugin,
+	uint32_t index,
+	bool is_input,
+	clap_audio_port_info_t *info);
+
+#endif 
+
+#endif 
